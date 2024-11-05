@@ -10,20 +10,18 @@ This package requires Google Mobile Ads, available through OpenUPM. Here’s how
 
     Install Node.js (if not already installed):
         Download and install Node.js from https://nodejs.org/.
+Then
 
     Install OpenUPM CLI:
         Open a command prompt or terminal and run:
 
-        bash
+Then
 
     npm install -g openupm-cli
 
 Add Google Mobile Ads via OpenUPM:
 
     In your Unity project directory, run:
-
-    bash
-
         openupm add com.google.ads.mobile
 
     This command will add Google Mobile Ads to your project. If you encounter issues, ensure Node.js and OpenUPM are installed correctly.
@@ -78,3 +76,6 @@ If you encounter issues with AdMob mediation or Unity Ads, follow these steps:
 4. Verify the Integration
 
     Check your AdMob mediation settings on the Unity dashboard to confirm that Unity Ads is integrated correctly.
+
+
+   Package Manager Import will be coming soon.
