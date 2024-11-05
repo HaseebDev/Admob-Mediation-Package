@@ -1,59 +1,80 @@
-# 🌟 Autech Admob Mediation Unity Ads
+🌟 Autech Admob Mediation Unity Ads
 
-Welcome to the **Autech Admob Mediation Unity Ads** package! This package provides seamless integration of AdMob mediation with Unity Ads for your Unity projects.
+Welcome to the Autech Admob Mediation Unity Ads package! This package provides seamless integration of AdMob mediation with Unity Ads for your Unity projects.
+📦 Integration Steps
 
----
+Follow these steps to manually integrate this package into your Unity project:
+1. Set Up OpenUPM (Required for Dependencies)
 
-## 📦 Integration Steps
+This package requires Google Mobile Ads, available through OpenUPM. Here’s how to get OpenUPM set up:
 
-Follow these simple steps to integrate this package into your Unity project using the Package Manager:
+    Install Node.js (if not already installed):
+        Download and install Node.js from https://nodejs.org/.
 
-### 1. Open Your Unity Project
-   - Launch your Unity Editor and open the project where you want to integrate this package.
+    Install OpenUPM CLI:
+        Open a command prompt or terminal and run:
 
-### 2. Open the Package Manager
-   - Navigate to `Window` > `Package Manager` in the Unity Editor.
+        bash
 
-### 3. Add the Package
-   - In the Package Manager window, click the `+` button in the top left corner.
-   - Select **Add package from git URL...**.
-   - Enter the following URL for the package:
-     ```
-     https://github.com/HaseebDev/Autech-Admob-Mediation-UnityAds.git
-     ```
-   - Click **Add** to import the package.
+    npm install -g openupm-cli
 
-### 4. Confirm Installation
-   - Ensure the package appears in your list of installed packages. You can now start using the AdMob mediation functionality in your Unity project.
+Add Google Mobile Ads via OpenUPM:
 
-### 5. Drag and Drop the Prefab
-   - To initialize AdMob, drag and drop the `VerifyAndInitializeAdmob` prefab into your scene. This prefab is essential for verifying and initializing the AdMob services.
+    In your Unity project directory, run:
 
-### 6. Change Ad IDs
-   - Currently, to change the Ad IDs, navigate to the **AdsManager** script and update the Ad IDs accordingly. We are planning to improve accessibility for changing Ad IDs in the next version.
----
+    bash
 
-## 🛠️ Troubleshooting Mediation Issues
+        openupm add com.google.ads.mobile
 
-If you encounter issues with AdMob mediation, particularly with Unity Ads, follow these steps to resolve them:
+    This command will add Google Mobile Ads to your project. If you encounter issues, ensure Node.js and OpenUPM are installed correctly.
 
-### 1. Delete the Existing Unity Ads Plugin
-   - Navigate to your Unity project folder and delete the following directory:
-     ```
-     Assets/UnityAds
-     ```
+2. Import the Autech Admob Mediation Unity Ads Package
 
-### 2. Download the Latest Version of Unity Ads
-   - Go to the official Unity Ads Mediation documentation at:
-     [Unity Ads Mediation Plugin Changelog](https://developers.google.com/admob/unity/mediation/unity#unity-ads-unity-mediation-plugin-changelog)
-   - Follow the instructions to download the latest version of the Unity Ads plugin.
+After setting up OpenUPM and adding Google Mobile Ads, proceed with importing the .unitypackage:
 
-### 3. Re-import the Plugin
-   - Once you have the latest version, re-import the plugin into your Unity project.
+    Download the Latest Unity Package:
+        Download the latest release of this package from the Releases section of this repository (e.g., release/v1.0.0/Autech-Admob-Mediation-UnityAds-v1.0.0.unitypackage).
 
-### 4. Verify the Integration
-   - Ensure that the Unity Ads are correctly integrated by checking the AdMob mediation settings in the Unity dashboard.
+    Import the Unity Package:
+        Open your Unity project.
+        Go to Assets > Import Package > Custom Package....
+        Select the downloaded .unitypackage file and import it.
 
-If you continue to experience issues after following these steps, please check the official documentation or reach out for further assistance.
+3. Drag and Drop the Prefab
 
----
+To initialize AdMob in your project:
+
+    Drag and drop the VerifyAndInitializeAdmob prefab into your scene.
+    This prefab handles the verification and initialization of AdMob services.
+
+4. Update Ad IDs
+
+Currently, Ad IDs can be modified in the AdsManager script:
+
+    Open AdsManager and locate the Ad ID fields.
+    Replace the default Ad IDs with your own.
+
+Note: In future versions, we aim to simplify access to Ad ID settings.
+🛠️ Troubleshooting Mediation Issues
+
+If you encounter issues with AdMob mediation or Unity Ads, follow these steps:
+1. Delete the Existing Unity Ads Plugin
+
+    Go to the following directory in your Unity project:
+
+    Assets/UnityAds
+
+    Delete the folder to remove the existing Unity Ads plugin.
+
+2. Download the Latest Unity Ads Plugin
+
+    Go to the official Unity Ads Mediation documentation: Unity Ads Mediation Plugin Changelog
+    Download the latest version of the Unity Ads plugin.
+
+3. Re-import the Plugin
+
+    Import the newly downloaded plugin back into your Unity project.
+
+4. Verify the Integration
+
+    Check your AdMob mediation settings on the Unity dashboard to confirm that Unity Ads is integrated correctly.
