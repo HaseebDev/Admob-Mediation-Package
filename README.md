@@ -23,20 +23,41 @@ A powerful and easy-to-integrate package that seamlessly combines AdMob mediatio
 
 ### 1. Set Up OpenUPM
 
-First, we need to set up OpenUPM to handle our dependencies:
+#### Install Node.js
+1. Visit [https://nodejs.org/](https://nodejs.org/)
+2. Download and install the recommended version for your operating system
+3. Verify installation by opening a terminal/command prompt and running:
+   ```bash
+   node --version
+   ```
 
-```bash
-# Install OpenUPM CLI
-npm install -g openupm-cli
+#### Install OpenUPM CLI
+1. Open a terminal or command prompt
+2. Run the following command:
+   ```bash
+   npm install -g openupm-cli
+   ```
+3. Verify OpenUPM installation:
+   ```bash
+   openupm --version
+   ```
 
-# Add Google Mobile Ads to your project
-cd <your-unity-project-path>
-openupm add com.google.ads.mobile
-```
+#### Add Google Mobile Ads
+1. Navigate to your Unity project directory in the terminal:
+   ```bash
+   cd <your-unity-project-path>
+   ```
+2. Add Google Mobile Ads package:
+   ```bash
+   openupm add com.google.ads.mobile
+   ```
+   
+> **Note**: If you encounter any issues, ensure Node.js and OpenUPM are installed correctly and your terminal has administrative privileges.
 
 ### 2. Import the Package
 
 1. Download the latest release from our [Releases](releases) section
+   - Look for: `Autech-Admob-Mediation-UnityAds-v1.0.0.unitypackage` (or latest version)
 2. In Unity, go to `Assets > Import Package > Custom Package...`
 3. Select the downloaded `.unitypackage` file
 4. Import all assets
