@@ -88,7 +88,7 @@ If you encounter issues with Unity Ads mediation:
    ```
 
 2. **Get Fresh Unity Ads Plugin**
-   - Visit [Unity Ads Mediation Plugin Changelog](https://developers.google.com/admob/unity/mediation/unity#step_1_import_the_unity_ads_unity_plugin)
+   - Visit [Unity Ads Mediation Plugin Changelog](https://developers.google.com/admob/unity/mediation/unity#unity-ads-unity-mediation-plugin-changelog)
    - Download the latest version
 
 3. **Reinstall Plugin**
