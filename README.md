@@ -84,7 +84,7 @@ If you encounter issues with Unity Ads mediation:
 
 1. **Remove Existing Unity Ads**
    ```
-   Delete Assets/UnityAds folder
+   Delete Assets/GoogleMobileAds/Mediation/UnityAds folder
    ```
 
 2. **Get Fresh Unity Ads Plugin**
