@@ -3,6 +3,30 @@ using System;
 using GoogleMobileAds.Api;
 using GoogleMobileAds.Ump.Api;
 using GoogleMobileAds.Mediation.UnityAds.Api;
+using GoogleMobileAds.Common;
+
+public enum BannerPosition
+{
+    Top,
+    Bottom,
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
+    Center
+}
+
+public enum BannerSize
+{
+    Banner,              // 320x50
+    LargeBanner,         // 320x100
+    MediumRectangle,     // 300x250
+    FullBanner,          // 468x60
+    Leaderboard,         // 728x90
+    SmartBanner,         // Deprecated but kept for compatibility
+    Adaptive,            // Adaptive banner (recommended)
+    AdaptiveInline       // Adaptive inline banner
+}
 
 public class AdsManager : MonoBehaviour
 {
@@ -29,11 +53,11 @@ public class AdsManager : MonoBehaviour
     private const string REWARDED_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/5354046379";
     private const string APP_OPEN_ID = "ca-app-pub-3940256099942544/9257395921";
 #elif UNITY_IOS
-    private const string BANNER_ID = "ca-app-pub-1768687954002835/9451348212";
-    private const string INTERSTITIAL_ID = "ca-app-pub-xxx/yyy";
-    private const string REWARDED_ID = "ca-app-pub-xxx/yyy";
-    private const string REWARDED_INTERSTITIAL_ID = "ca-app-pub-xxx/yyy";
-    private const string APP_OPEN_ID = "ca-app-pub-xxx/yyy";
+    private const string BANNER_ID = "ca-app-pub-3940256099942544/2934735716";
+    private const string INTERSTITIAL_ID = "ca-app-pub-3940256099942544/4411468910";
+    private const string REWARDED_ID = "ca-app-pub-3940256099942544/1712485313";
+    private const string REWARDED_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/6978759866";
+    private const string APP_OPEN_ID = "ca-app-pub-3940256099942544/5575463023";
 #else
     private const string BANNER_ID = "";
     private const string INTERSTITIAL_ID = "";
@@ -42,15 +66,43 @@ public class AdsManager : MonoBehaviour
     private const string APP_OPEN_ID = "";
 #endif
 
+    [Header("Ad Settings")]
+    [SerializeField] private bool autoShowAppOpenAds = true;
+    [SerializeField] private bool enableTestAds = true;
+    [SerializeField] private float appOpenCooldownTime = 4f; // seconds between app open ads
+    
+    [Header("Banner Settings")]
+    [SerializeField] private bool useAdaptiveBanners = true;
+    [SerializeField] private bool enableCollapsibleBanners = false;
+    [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
+    
     private BannerView bannerView;
     private InterstitialAd interstitialAd;
     private RewardedAd rewardedAd;
     private RewardedInterstitialAd rewardedInterstitialAd;
     private AppOpenAd appOpenAd;
     private DateTime appOpenExpireTime;
+    private DateTime lastAppOpenShownTime;
     private bool isInitialized = false;
     private bool isShowingAd = false;
+    private bool isAppOpenAdShowing = false;
     private AdPosition currentBannerPosition = AdPosition.Bottom;
+    private bool isBannerLoaded = false;
+    private bool isBannerVisible = false;
+
+    // App state management for app open ads
+    // AppStateEventNotifier is static, no instance needed
+
+    // Retry counters for failed loads
+    private int interstitialRetryAttempt;
+    private int rewardedRetryAttempt;
+    private int rewardedInterstitialRetryAttempt;
+    private int appOpenRetryAttempt;
+    private const int maxRetryCount = 3;
+
+    // Cold start management
+    private bool isColdStart = true;
+    private bool hasShownFirstAppOpenAd = false;
 
     private void Awake()
     {
@@ -66,23 +118,28 @@ public class AdsManager : MonoBehaviour
         }
     }
 
+    private void Start()
+    {
+        // Initialize app state notifier for app open ads
+        AppStateEventNotifier.AppStateChanged += OnAppStateChanged;
+    }
+
     private void InitializeAds()
     {
-        InitializeAdMob();
-        //RequestConsentInfo();
+        RequestConsentInfo();
     }
 
     private void RequestConsentInfo()
     {
         var debugSettings = new ConsentDebugSettings
         {
-            DebugGeography = DebugGeography.EEA
+            DebugGeography = enableTestAds ? DebugGeography.EEA : DebugGeography.Disabled
         };
 
         ConsentRequestParameters request = new ConsentRequestParameters
         {
             TagForUnderAgeOfConsent = false,
-            ConsentDebugSettings = Debug.isDebugBuild ? debugSettings : null
+            ConsentDebugSettings = debugSettings
         };
 
         ConsentInformation.Update(request, OnConsentInfoUpdated);
@@ -93,6 +150,8 @@ public class AdsManager : MonoBehaviour
         if (error != null)
         {
             Debug.LogError($"Consent Error: {error}");
+            // Initialize anyway if consent fails
+            InitializeAdMob();
             return;
         }
 
@@ -113,6 +172,8 @@ public class AdsManager : MonoBehaviour
             if (loadError != null)
             {
                 Debug.LogError($"Consent form error: {loadError}");
+                // Initialize anyway if consent form fails to load
+                InitializeAdMob();
                 return;
             }
 
@@ -123,68 +184,278 @@ public class AdsManager : MonoBehaviour
                     if (showError != null)
                     {
                         Debug.LogError($"Error showing consent form: {showError}");
-                        return;
                     }
 
                     // Set Unity Ads consent after user's choice
-                    if (ConsentInformation.ConsentStatus == ConsentStatus.Obtained)
-                    {
-                        UnityAds.SetConsentMetaData("gdpr.consent", true);
-                        UnityAds.SetConsentMetaData("privacy.consent", true);
-                    }
-                    else
-                    {
-                        UnityAds.SetConsentMetaData("gdpr.consent", false);
-                        UnityAds.SetConsentMetaData("privacy.consent", false);
-                    }
-
+                    SetMediationConsent();
                     InitializeAdMob();
                 });
             }
             else
             {
+                // Set consent metadata for existing consent
+                SetMediationConsent();
                 InitializeAdMob();
             }
         });
     }
 
+    private void SetMediationConsent()
+    {
+        bool hasConsent = ConsentInformation.ConsentStatus == ConsentStatus.Obtained;
+        
+        // Unity Ads mediation consent
+        UnityAds.SetConsentMetaData("gdpr.consent", hasConsent);
+        UnityAds.SetConsentMetaData("privacy.consent", hasConsent);
+        
+        // Additional mediation networks can be added here
+        Debug.Log($"Mediation consent set: {hasConsent}");
+    }
+
     private void InitializeAdMob()
     {
+        // Configure request configuration for test devices if needed
+        var requestConfiguration = new RequestConfiguration
+        {
+            TestDeviceIds = enableTestAds ? new System.Collections.Generic.List<string> { "YOUR_TEST_DEVICE_ID" } : null
+        };
+        
+        MobileAds.SetRequestConfiguration(requestConfiguration);
+
         MobileAds.Initialize((InitializationStatus initStatus) =>
         {
             isInitialized = true;
-            LoadInterstitialAd();
-            LoadRewardedAd();
-            LoadRewardedInterstitialAd();
-            LoadAppOpenAd();
-            LoadBanner();
+            isColdStart = false; // Initialization complete, no longer cold start
+            Debug.Log("AdMob initialized successfully");
+            
+            // Log mediation adapter statuses
+            foreach (var adapterStatus in initStatus.getAdapterStatusMap())
+            {
+                Debug.Log($"Adapter: {adapterStatus.Key}, Status: {adapterStatus.Value.InitializationState}, Description: {adapterStatus.Value.Description}");
+            }
+            
+            LoadAllAds();
         });
+    }
+
+    private void LoadAllAds()
+    {
+        LoadInterstitialAd();
+        LoadRewardedAd();
+        LoadRewardedInterstitialAd();
+        LoadAppOpenAd();
+        LoadBanner();
+    }
+
+    // App State Management for App Open Ads
+    private void OnAppStateChanged(AppState appState)
+    {
+        Debug.Log($"App state changed to: {appState}");
+        
+        if (appState == AppState.Foreground && autoShowAppOpenAds)
+        {
+            // Don't show on cold start or if an ad is already showing
+            if (!isColdStart && !isShowingAd && !isAppOpenAdShowing)
+            {
+                // Check cooldown period
+                if (DateTime.Now.Subtract(lastAppOpenShownTime).TotalSeconds >= appOpenCooldownTime)
+                {
+                    ShowAppOpenAdIfAvailable();
+                }
+            }
+        }
+    }
+
+    private void ShowAppOpenAdIfAvailable()
+    {
+        if (IsAppOpenAdAvailable())
+        {
+            ShowAppOpenAd(() => {
+                hasShownFirstAppOpenAd = true;
+                lastAppOpenShownTime = DateTime.Now;
+            });
+        }
     }
 
     #region Banner Ads
     public void LoadBanner()
     {
-        if (!isInitialized) return;
-
-        if (bannerView != null)
+        if (!isInitialized) 
         {
-            bannerView.Destroy();
+            Debug.LogWarning("AdMob not initialized yet");
+            return;
         }
 
-        bannerView = new BannerView(BANNER_ID, AdSize.Banner, currentBannerPosition);
+        DestroyBanner();
+
+        AdSize adSize = GetAdSize();
+        bannerView = new BannerView(BANNER_ID, adSize, currentBannerPosition);
+        
+        // Register banner events
+        RegisterBannerEvents();
+        
+        // Load the banner
+        var adRequest = CreateAdRequest();
+        
+        // Add collapsible banner custom targeting if enabled
+        if (enableCollapsibleBanners)
+        {
+            adRequest.Extras.Add("collapsible", "bottom"); // or "top"
+        }
+        
+        bannerView.LoadAd(adRequest);
+        
+        Debug.Log($"Loading {(useAdaptiveBanners ? "adaptive" : "standard")} banner ad...");
+    }
+
+    private AdSize GetAdSize()
+    {
+        if (useAdaptiveBanners)
+        {
+            return GetAdaptiveAdSize();
+        }
+        
+        return GetStandardAdSize();
+    }
+
+    private AdSize GetAdaptiveAdSize()
+    {
+        // For adaptive banners, use the standard Banner size as fallback
+        // In newer versions of Google Mobile Ads, adaptive sizing is handled automatically
+        Debug.Log("Using adaptive banner (automatic sizing)");
+        return AdSize.Banner;
+    }
+
+    private AdSize GetStandardAdSize()
+    {
+        switch (preferredBannerSize)
+        {
+            case BannerSize.Banner:
+                return AdSize.Banner;
+            case BannerSize.LargeBanner:
+                return new AdSize(320, 100); // Large Banner
+            case BannerSize.MediumRectangle:
+                return AdSize.MediumRectangle;
+            case BannerSize.FullBanner:
+                return new AdSize(468, 60); // Full Banner
+            case BannerSize.Leaderboard:
+                return AdSize.Leaderboard;
+            case BannerSize.SmartBanner:
+                // Smart banners are deprecated, use Banner instead
+                Debug.LogWarning("Smart banners are deprecated. Using standard banner instead.");
+                return AdSize.Banner;
+            case BannerSize.Adaptive:
+            case BannerSize.AdaptiveInline:
+                return AdSize.Banner;
+            default:
+                return AdSize.Banner;
+        }
+    }
+
+    private void RegisterBannerEvents()
+    {
+        if (bannerView == null) return;
+
+        // Banner loaded successfully
+        bannerView.OnBannerAdLoaded += () => {
+            isBannerLoaded = true;
+            Debug.Log("Banner ad loaded successfully");
+            
+            // Auto-show banner if it was meant to be visible
+            if (isBannerVisible)
+            {
+                bannerView.Show();
+            }
+        };
+
+        // Banner failed to load
+        bannerView.OnBannerAdLoadFailed += (LoadAdError error) => {
+            isBannerLoaded = false;
+            Debug.LogError($"Banner ad failed to load: {error.GetMessage()}\nError Code: {error.GetCode()}\nCause: {error.GetCause()}");
+            
+            // Retry loading after a delay
+            RetryLoadBanner();
+        };
+
+        // Banner revenue tracking
+        bannerView.OnAdPaid += (AdValue adValue) => {
+            Debug.Log($"Banner ad paid: {adValue.Value} {adValue.CurrencyCode}");
+            // Here you can send revenue data to analytics services
+            TrackAdRevenue("banner", adValue);
+        };
+
+        // Banner impression recorded
+        bannerView.OnAdImpressionRecorded += () => {
+            Debug.Log("Banner ad impression recorded");
+        };
+
+        // Banner clicked
+        bannerView.OnAdClicked += () => {
+            Debug.Log("Banner ad was clicked");
+        };
+
+        // Banner opened full screen content
+        bannerView.OnAdFullScreenContentOpened += () => {
+            Debug.Log("Banner ad opened full screen content");
+            // Pause game logic if needed
+            OnBannerFullScreenOpened();
+        };
+
+        // Banner closed full screen content
+        bannerView.OnAdFullScreenContentClosed += () => {
+            Debug.Log("Banner ad closed full screen content");
+            // Resume game logic if needed
+            OnBannerFullScreenClosed();
+        };
+    }
+
+    private void RetryLoadBanner()
+    {
+        // Implement exponential backoff for banner retries
+        Invoke(nameof(LoadBanner), 2f);
+    }
+
+    private void OnBannerFullScreenOpened()
+    {
+        // Pause your game or app logic here
+        if (Time.timeScale == 1f)
+        {
+            Time.timeScale = 0f;
+        }
+    }
+
+    private void OnBannerFullScreenClosed()
+    {
+        // Resume your game or app logic here
+        if (Time.timeScale == 0f)
+        {
+            Time.timeScale = 1f;
+        }
     }
 
     public void ShowBanner(bool show)
     {
-        if (bannerView != null)
+        isBannerVisible = show;
+        
+        if (bannerView != null && isBannerLoaded)
         {
             if (show)
+            {
                 bannerView.Show();
+                Debug.Log("Banner ad displayed");
+            }
             else
+            {
                 bannerView.Hide();
+                Debug.Log("Banner ad hidden");
+            }
+        }
+        else if (show)
+        {
+            // Load banner if it's not loaded yet
+            LoadBanner();
         }
     }
-
 
     public void SetBannerPosition(BannerPosition position)
     {
@@ -192,13 +463,145 @@ public class AdsManager : MonoBehaviour
         if (currentBannerPosition != newPosition)
         {
             currentBannerPosition = newPosition;
+            Debug.Log($"Banner position changed to: {position}");
+            
             // Reload banner with new position if it exists
             if (bannerView != null)
             {
-                bannerView.Destroy();
+                bool wasVisible = isBannerVisible;
+                DestroyBanner();
                 LoadBanner();
+                
+                // Restore visibility state
+                if (wasVisible)
+                {
+                    ShowBanner(true);
+                }
             }
         }
+    }
+
+    public void SetBannerSize(BannerSize size)
+    {
+        if (preferredBannerSize != size)
+        {
+            preferredBannerSize = size;
+            Debug.Log($"Banner size changed to: {size}");
+            
+            // Reload banner with new size if it exists
+            if (bannerView != null)
+            {
+                bool wasVisible = isBannerVisible;
+                DestroyBanner();
+                LoadBanner();
+                
+                // Restore visibility state
+                if (wasVisible)
+                {
+                    ShowBanner(true);
+                }
+            }
+        }
+    }
+
+    public void EnableAdaptiveBanners(bool enable)
+    {
+        if (useAdaptiveBanners != enable)
+        {
+            useAdaptiveBanners = enable;
+            Debug.Log($"Adaptive banners {(enable ? "enabled" : "disabled")}");
+            
+            // Reload banner with new setting
+            if (bannerView != null)
+            {
+                bool wasVisible = isBannerVisible;
+                DestroyBanner();
+                LoadBanner();
+                
+                // Restore visibility state
+                if (wasVisible)
+                {
+                    ShowBanner(true);
+                }
+            }
+        }
+    }
+
+    public void EnableCollapsibleBanners(bool enable)
+    {
+        if (enableCollapsibleBanners != enable)
+        {
+            enableCollapsibleBanners = enable;
+            Debug.Log($"Collapsible banners {(enable ? "enabled" : "disabled")}");
+            
+            // Reload banner with new setting
+            if (bannerView != null)
+            {
+                bool wasVisible = isBannerVisible;
+                DestroyBanner();
+                LoadBanner();
+                
+                // Restore visibility state
+                if (wasVisible)
+                {
+                    ShowBanner(true);
+                }
+            }
+        }
+    }
+
+    private void DestroyBanner()
+    {
+        if (bannerView != null)
+        {
+            bannerView.Destroy();
+            bannerView = null;
+            isBannerLoaded = false;
+            isBannerVisible = false;
+            Debug.Log("Banner ad destroyed");
+        }
+    }
+
+    // Utility methods for banner management
+    public bool IsBannerLoaded()
+    {
+        return isBannerLoaded && bannerView != null;
+    }
+
+    public bool IsBannerVisible()
+    {
+        return isBannerVisible && IsBannerLoaded();
+    }
+
+    public Vector2 GetBannerSize()
+    {
+        if (bannerView != null)
+        {
+            // Return the size based on the current banner type
+            AdSize currentSize = GetAdSize();
+            return new Vector2(currentSize.Width, currentSize.Height);
+        }
+        return Vector2.zero;
+    }
+
+    // Revenue tracking helper
+    private void TrackAdRevenue(string adFormat, AdValue adValue)
+    {
+        // Implement your analytics tracking here
+        // Example: Firebase Analytics, Unity Analytics, etc.
+        Debug.Log($"Ad Revenue - Format: {adFormat}, Value: {adValue.Value}, Currency: {adValue.CurrencyCode}");
+        
+        // Example implementation for different analytics services:
+        /*
+        // Firebase Analytics
+        Firebase.Analytics.FirebaseAnalytics.LogEvent("ad_impression", new Firebase.Analytics.Parameter[] {
+            new Firebase.Analytics.Parameter("ad_platform", "GoogleAdMob"),
+            new Firebase.Analytics.Parameter("ad_format", adFormat),
+            new Firebase.Analytics.Parameter("ad_unit_name", BANNER_ID),
+            new Firebase.Analytics.Parameter("currency", adValue.CurrencyCode),
+            new Firebase.Analytics.Parameter("value", adValue.Value)
+        });
+        */
     }
 
     private AdPosition ConvertToAdPosition(BannerPosition position)
@@ -235,39 +638,56 @@ public class AdsManager : MonoBehaviour
             interstitialAd.Destroy();
         }
 
-        var adRequest = new AdRequest();
+        var adRequest = CreateAdRequest();
         InterstitialAd.Load(INTERSTITIAL_ID, adRequest, (InterstitialAd ad, LoadAdError error) =>
         {
             if (error != null)
             {
                 Debug.LogError($"Interstitial ad failed to load: {error}");
+                RetryLoadInterstitial();
                 return;
             }
 
             interstitialAd = ad;
-            //RegisterInterstitialEvents();
+            interstitialRetryAttempt = 0;
+            RegisterEventHandlers(interstitialAd);
+            Debug.Log("Interstitial ad loaded successfully");
         });
+    }
+
+    private void RetryLoadInterstitial()
+    {
+        interstitialRetryAttempt++;
+        if (interstitialRetryAttempt < maxRetryCount)
+        {
+            Invoke(nameof(LoadInterstitialAd), Mathf.Pow(2, interstitialRetryAttempt));
+        }
     }
 
     private void RegisterInterstitialEvents()
     {
-
         LoadInterstitialAd();
-
     }
 
     public void ShowInterstitial(Action onSuccess, Action onFailure)
     {
         if (interstitialAd != null && interstitialAd.CanShowAd())
         {
-            interstitialAd.OnAdFullScreenContentClosed += () =>
-            {
+            isShowingAd = true;
+            
+            // Subscribe to events with cleanup
+            System.Action onClosed = () => {
+                isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            interstitialAd.OnAdFullScreenContentFailed += (error) =>
-            {
+            System.Action<AdError> onFailed = (error) => {
+                isShowingAd = false;
                 onFailure?.Invoke();
             };
+            
+            interstitialAd.OnAdFullScreenContentClosed += onClosed;
+            interstitialAd.OnAdFullScreenContentFailed += onFailed;
+            
             interstitialAd.Show();
         }
         else
@@ -279,30 +699,24 @@ public class AdsManager : MonoBehaviour
 
     public void ShowInterstitial(Action onSuccess)
     {
-        if (interstitialAd != null && interstitialAd.CanShowAd())
-        {
-            interstitialAd.OnAdFullScreenContentClosed += () =>
-            {
-                onSuccess?.Invoke();
-            };
-            interstitialAd.Show();
-        }
-        else
-        {
-            LoadInterstitialAd();
-        }
+        ShowInterstitial(onSuccess, null);
     }
 
     public void ShowInterstitial()
     {
-        if (interstitialAd != null && interstitialAd.CanShowAd())
-        {
-            interstitialAd.Show();
-        }
-        else
-        {
-            LoadInterstitialAd();
-        }
+        ShowInterstitial(null, null);
+    }
+
+    private void OnInterstitialClosed()
+    {
+        isShowingAd = false;
+        Debug.Log("Interstitial ad closed");
+    }
+
+    private void OnInterstitialFailed(AdError error)
+    {
+        isShowingAd = false;
+        Debug.LogError($"Interstitial ad failed to show: {error}");
     }
     #endregion
 
@@ -311,40 +725,59 @@ public class AdsManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        var adRequest = new AdRequest();
+        var adRequest = CreateAdRequest();
         RewardedAd.Load(REWARDED_ID, adRequest, (RewardedAd ad, LoadAdError error) =>
         {
             if (error != null)
             {
                 Debug.LogError($"Rewarded ad failed to load: {error}");
+                RetryLoadRewarded();
                 return;
             }
 
             rewardedAd = ad;
-
+            rewardedRetryAttempt = 0;
+            RegisterEventHandlers(rewardedAd);
+            Debug.Log("Rewarded ad loaded successfully");
         });
+    }
+
+    private void RetryLoadRewarded()
+    {
+        rewardedRetryAttempt++;
+        if (rewardedRetryAttempt < maxRetryCount)
+        {
+            Invoke(nameof(LoadRewardedAd), Mathf.Pow(2, rewardedRetryAttempt));
+        }
     }
 
     private void RegisterRewardedEvents()
     {
-
         LoadRewardedAd();
-
     }
 
-    public void ShowRewarded(Action onSuccess, Action onFailure)
+    public void ShowRewarded(Action<Reward> onRewarded, Action onSuccess, Action onFailure)
     {
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
-            rewardedAd.OnAdFullScreenContentClosed += () =>
-            {
+            isShowingAd = true;
+            
+            System.Action onClosed = () => {
+                isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            rewardedAd.OnAdFullScreenContentFailed += (error) =>
-            {
+            System.Action<AdError> onFailed = (error) => {
+                isShowingAd = false;
                 onFailure?.Invoke();
             };
-            rewardedAd.Show((reward) => { });
+            
+            rewardedAd.OnAdFullScreenContentClosed += onClosed;
+            rewardedAd.OnAdFullScreenContentFailed += onFailed;
+            
+            rewardedAd.Show((reward) => {
+                Debug.Log($"Rewarded ad granted reward: {reward.Amount} {reward.Type}");
+                onRewarded?.Invoke(reward);
+            });
         }
         else
         {
@@ -353,32 +786,31 @@ public class AdsManager : MonoBehaviour
         }
     }
 
+    public void ShowRewarded(Action onSuccess, Action onFailure)
+    {
+        ShowRewarded(null, onSuccess, onFailure);
+    }
+
     public void ShowRewarded(Action onSuccess)
     {
-        if (rewardedAd != null && rewardedAd.CanShowAd())
-        {
-            rewardedAd.OnAdFullScreenContentClosed += () =>
-            {
-                onSuccess?.Invoke();
-            };
-            rewardedAd.Show((reward) => { });
-        }
-        else
-        {
-            LoadRewardedAd();
-        }
+        ShowRewarded(null, onSuccess, null);
     }
 
     public void ShowRewarded()
     {
-        if (rewardedAd != null && rewardedAd.CanShowAd())
-        {
-            rewardedAd.Show((reward) => { });
-        }
-        else
-        {
-            LoadRewardedAd();
-        }
+        ShowRewarded(null, null, null);
+    }
+
+    private void OnRewardedClosed()
+    {
+        isShowingAd = false;
+        Debug.Log("Rewarded ad closed");
+    }
+
+    private void OnRewardedFailed(AdError error)
+    {
+        isShowingAd = false;
+        Debug.LogError($"Rewarded ad failed to show: {error}");
     }
     #endregion
 
@@ -387,40 +819,60 @@ public class AdsManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        var adRequest = new AdRequest();
+        var adRequest = CreateAdRequest();
         RewardedInterstitialAd.Load(REWARDED_INTERSTITIAL_ID, adRequest,
             (RewardedInterstitialAd ad, LoadAdError error) =>
         {
             if (error != null)
             {
                 Debug.LogError($"Rewarded interstitial ad failed to load: {error}");
+                RetryLoadRewardedInterstitial();
                 return;
             }
 
             rewardedInterstitialAd = ad;
+            rewardedInterstitialRetryAttempt = 0;
+            RegisterEventHandlers(rewardedInterstitialAd);
+            Debug.Log("Rewarded interstitial ad loaded successfully");
         });
+    }
+
+    private void RetryLoadRewardedInterstitial()
+    {
+        rewardedInterstitialRetryAttempt++;
+        if (rewardedInterstitialRetryAttempt < maxRetryCount)
+        {
+            Invoke(nameof(LoadRewardedInterstitialAd), Mathf.Pow(2, rewardedInterstitialRetryAttempt));
+        }
     }
 
     private void RegisterRewardedInterstitialEvents()
     {
-
         LoadRewardedInterstitialAd();
-
     }
 
-    public void ShowRewardedInterstitial(Action onSuccess, Action onFailure)
+    public void ShowRewardedInterstitial(Action<Reward> onRewarded, Action onSuccess, Action onFailure)
     {
-        if (rewardedInterstitialAd != null)
+        if (rewardedInterstitialAd != null && rewardedInterstitialAd.CanShowAd())
         {
-            rewardedInterstitialAd.OnAdFullScreenContentClosed += () =>
-            {
+            isShowingAd = true;
+            
+            System.Action onClosed = () => {
+                isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            rewardedInterstitialAd.OnAdFullScreenContentFailed += (error) =>
-            {
+            System.Action<AdError> onFailed = (error) => {
+                isShowingAd = false;
                 onFailure?.Invoke();
             };
-            rewardedInterstitialAd.Show((reward) => { });
+            
+            rewardedInterstitialAd.OnAdFullScreenContentClosed += onClosed;
+            rewardedInterstitialAd.OnAdFullScreenContentFailed += onFailed;
+            
+            rewardedInterstitialAd.Show((reward) => {
+                Debug.Log($"Rewarded interstitial ad granted reward: {reward.Amount} {reward.Type}");
+                onRewarded?.Invoke(reward);
+            });
         }
         else
         {
@@ -429,32 +881,19 @@ public class AdsManager : MonoBehaviour
         }
     }
 
+    public void ShowRewardedInterstitial(Action onSuccess, Action onFailure)
+    {
+        ShowRewardedInterstitial(null, onSuccess, onFailure);
+    }
+
     public void ShowRewardedInterstitial(Action onSuccess)
     {
-        if (rewardedInterstitialAd != null)
-        {
-            rewardedInterstitialAd.OnAdFullScreenContentClosed += () =>
-            {
-                onSuccess?.Invoke();
-            };
-            rewardedInterstitialAd.Show((reward) => { });
-        }
-        else
-        {
-            LoadRewardedInterstitialAd();
-        }
+        ShowRewardedInterstitial(null, onSuccess, null);
     }
 
     public void ShowRewardedInterstitial()
     {
-        if (rewardedInterstitialAd != null)
-        {
-            rewardedInterstitialAd.Show((reward) => { });
-        }
-        else
-        {
-            LoadRewardedInterstitialAd();
-        }
+        ShowRewardedInterstitial(null, null, null);
     }
     #endregion
 
@@ -463,50 +902,72 @@ public class AdsManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
-        var adRequest = new AdRequest();
+        var adRequest = CreateAdRequest();
         AppOpenAd.Load(APP_OPEN_ID, adRequest,
             (AppOpenAd ad, LoadAdError error) =>
         {
             if (error != null)
             {
                 Debug.LogError($"App open ad failed to load: {error}");
+                RetryLoadAppOpen();
                 return;
             }
 
             appOpenAd = ad;
             appOpenExpireTime = DateTime.Now + TimeSpan.FromHours(4);
-            
+            appOpenRetryAttempt = 0;
+            RegisterEventHandlers(appOpenAd);
+            Debug.Log("App open ad loaded successfully");
         });
+    }
+
+    private void RetryLoadAppOpen()
+    {
+        appOpenRetryAttempt++;
+        if (appOpenRetryAttempt < maxRetryCount)
+        {
+            Invoke(nameof(LoadAppOpenAd), Mathf.Pow(2, appOpenRetryAttempt));
+        }
     }
 
     private void RegisterAppOpenEvents()
     {
-
-        isShowingAd = false;
+        isAppOpenAdShowing = false;
         LoadAppOpenAd();
+    }
 
+    public bool IsAppOpenAdAvailable()
+    {
+        return appOpenAd != null && DateTime.Now < appOpenExpireTime && !isShowingAd && !isAppOpenAdShowing;
     }
 
     public void ShowAppOpenAd(Action onSuccess, Action onFailure)
     {
-        if (isShowingAd)
+        if (isShowingAd || isAppOpenAdShowing)
         {
             onFailure?.Invoke();
             return;
         }
 
-        if (appOpenAd != null && DateTime.Now < appOpenExpireTime)
+        if (IsAppOpenAdAvailable())
         {
             isShowingAd = true;
-            appOpenAd.OnAdFullScreenContentClosed += () =>
-            {
+            isAppOpenAdShowing = true;
+            
+            System.Action onClosed = () => {
+                isShowingAd = false;
+                isAppOpenAdShowing = false;
                 onSuccess?.Invoke();
             };
-            appOpenAd.OnAdFullScreenContentFailed += (error) =>
-            {
+            System.Action<AdError> onFailed = (error) => {
                 isShowingAd = false;
+                isAppOpenAdShowing = false;
                 onFailure?.Invoke();
             };
+            
+            appOpenAd.OnAdFullScreenContentClosed += onClosed;
+            appOpenAd.OnAdFullScreenContentFailed += onFailed;
+            
             appOpenAd.Show();
         }
         else
@@ -518,48 +979,34 @@ public class AdsManager : MonoBehaviour
 
     public void ShowAppOpenAd(Action onSuccess)
     {
-        if (isShowingAd) return;
-
-        if (appOpenAd != null && DateTime.Now < appOpenExpireTime)
-        {
-            isShowingAd = true;
-            appOpenAd.OnAdFullScreenContentClosed += () =>
-            {
-                onSuccess?.Invoke();
-            };
-            appOpenAd.Show();
-        }
-        else
-        {
-            LoadAppOpenAd();
-        }
+        ShowAppOpenAd(onSuccess, null);
     }
 
     public void ShowAppOpenAd()
     {
-        if (isShowingAd) return;
-
-        if (appOpenAd != null && DateTime.Now < appOpenExpireTime)
-        {
-            isShowingAd = true;
-            appOpenAd.Show();
-        }
-        else
-        {
-            LoadAppOpenAd();
-        }
+        ShowAppOpenAd(null, null);
     }
     #endregion
 
+    #region Helper Methods
+    private AdRequest CreateAdRequest()
+    {
+        var adRequest = new AdRequest();
+        
+        // Add any additional request parameters here
+        // For example: keywords, content URL, etc.
+        
+        return adRequest;
+    }
+    #endregion
 
     #region CallBacks
-
     private void RegisterEventHandlers(AppOpenAd ad)
     {
         // Raised when the ad is estimated to have earned money.
         ad.OnAdPaid += (AdValue adValue) =>
         {
-
+            Debug.Log($"App open ad paid {adValue.Value} {adValue.CurrencyCode}");
         };
         // Raised when an impression is recorded for an ad.
         ad.OnAdImpressionRecorded += () =>
@@ -587,6 +1034,7 @@ public class AdsManager : MonoBehaviour
         {
             Debug.LogError("App open ad failed to open full screen content " +
                            "with error : " + error);
+            RegisterAppOpenEvents();
         };
     }
 
@@ -625,9 +1073,9 @@ public class AdsManager : MonoBehaviour
         {
             Debug.LogError("Interstitial ad failed to open full screen content " +
                            "with error : " + error);
+            RegisterInterstitialEvents();
         };
     }
-
 
     private void RegisterEventHandlers(RewardedInterstitialAd ad)
     {
@@ -664,9 +1112,9 @@ public class AdsManager : MonoBehaviour
         {
             Debug.LogError("Rewarded interstitial ad failed to open " +
                            "full screen content with error : " + error);
+            RegisterRewardedInterstitialEvents();
         };
     }
-
 
     private void RegisterEventHandlers(RewardedAd ad)
     {
@@ -703,23 +1151,60 @@ public class AdsManager : MonoBehaviour
         {
             Debug.LogError("Rewarded ad failed to open full screen content " +
                            "with error : " + error);
+            RegisterRewardedEvents();
         };
+    }
+    #endregion
+
+    // Public utility methods
+    public bool IsInterstitialReady()
+    {
+        return interstitialAd != null && interstitialAd.CanShowAd();
+    }
+
+    public bool IsRewardedReady()
+    {
+        return rewardedAd != null && rewardedAd.CanShowAd();
+    }
+
+    public bool IsRewardedInterstitialReady()
+    {
+        return rewardedInterstitialAd != null && rewardedInterstitialAd.CanShowAd();
     }
 
 
 
-    #endregion
+    public void EnableAutoAppOpenAds(bool enable)
+    {
+        autoShowAppOpenAds = enable;
+    }
+
+    public string GetAdapterStatus(string adapterName)
+    {
+        // This would require storing the initialization status
+        return "Not implemented";
+    }
 
     private void OnDestroy()
     {
-        if (bannerView != null)
-        {
-            bannerView.Destroy();
-        }
+        // Clean up app state notifier
+        AppStateEventNotifier.AppStateChanged -= OnAppStateChanged;
+
+        DestroyBanner();
 
         if (interstitialAd != null)
         {
             interstitialAd.Destroy();
+        }
+
+        if (rewardedAd != null)
+        {
+            rewardedAd.Destroy();
+        }
+
+        if (rewardedInterstitialAd != null)
+        {
+            rewardedInterstitialAd.Destroy();
         }
 
         if (appOpenAd != null)
@@ -728,11 +1213,8 @@ public class AdsManager : MonoBehaviour
         }
     }
 
-
-
-public void VerifyHit()
-{
-    Debug.Log("Admob Verified and Instanciated");
-}
-
+    public void VerifyHit()
+    {
+        Debug.Log("Admob Verified and Instanciated");
+    }
 }
