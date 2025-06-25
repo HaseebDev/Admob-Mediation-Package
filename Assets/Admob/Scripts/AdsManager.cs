@@ -45,31 +45,50 @@ public class AdsManager : MonoBehaviour
         }
     }
 
-    // Ad Unit IDs
+    // Ad Unit IDs - Default test IDs (override these with real IDs in production)
+    [Header("Ad Unit IDs - Android")]
+    [SerializeField] private string androidBannerId = "ca-app-pub-3940256099942544/6300978111";
+    [SerializeField] private string androidInterstitialId = "ca-app-pub-3940256099942544/1033173712";
+    [SerializeField] private string androidRewardedId = "ca-app-pub-3940256099942544/5224354917";
+    [SerializeField] private string androidRewardedInterstitialId = "ca-app-pub-3940256099942544/5354046379";
+    [SerializeField] private string androidAppOpenId = "ca-app-pub-3940256099942544/9257395921";
+    
+    [Header("Ad Unit IDs - iOS")]
+    [SerializeField] private string iosBannerId = "ca-app-pub-3940256099942544/2934735716";
+    [SerializeField] private string iosInterstitialId = "ca-app-pub-3940256099942544/4411468910";
+    [SerializeField] private string iosRewardedId = "ca-app-pub-3940256099942544/1712485313";
+    [SerializeField] private string iosRewardedInterstitialId = "ca-app-pub-3940256099942544/6978759866";
+    [SerializeField] private string iosAppOpenId = "ca-app-pub-3940256099942544/5575463023";
+
+    // Current platform Ad Unit IDs (computed properties)
+    private string BANNER_ID => GetCurrentPlatformAdId(androidBannerId, iosBannerId);
+    private string INTERSTITIAL_ID => GetCurrentPlatformAdId(androidInterstitialId, iosInterstitialId);
+    private string REWARDED_ID => GetCurrentPlatformAdId(androidRewardedId, iosRewardedId);
+    private string REWARDED_INTERSTITIAL_ID => GetCurrentPlatformAdId(androidRewardedInterstitialId, iosRewardedInterstitialId);
+    private string APP_OPEN_ID => GetCurrentPlatformAdId(androidAppOpenId, iosAppOpenId);
+
+    private string GetCurrentPlatformAdId(string androidId, string iosId)
+    {
 #if UNITY_ANDROID
-    private const string BANNER_ID = "ca-app-pub-3940256099942544/6300978111";
-    private const string INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712";
-    private const string REWARDED_ID = "ca-app-pub-3940256099942544/5224354917";
-    private const string REWARDED_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/5354046379";
-    private const string APP_OPEN_ID = "ca-app-pub-3940256099942544/9257395921";
+        return androidId;
 #elif UNITY_IOS
-    private const string BANNER_ID = "ca-app-pub-3940256099942544/2934735716";
-    private const string INTERSTITIAL_ID = "ca-app-pub-3940256099942544/4411468910";
-    private const string REWARDED_ID = "ca-app-pub-3940256099942544/1712485313";
-    private const string REWARDED_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/6978759866";
-    private const string APP_OPEN_ID = "ca-app-pub-3940256099942544/5575463023";
+        return iosId;
 #else
-    private const string BANNER_ID = "";
-    private const string INTERSTITIAL_ID = "";
-    private const string REWARDED_ID = "";
-    private const string REWARDED_INTERSTITIAL_ID = "";
-    private const string APP_OPEN_ID = "";
+        return ""; // Editor or unsupported platform
 #endif
+    }
 
     [Header("Ad Settings")]
     [SerializeField] private bool autoShowAppOpenAds = true;
     [SerializeField] private bool enableTestAds = true;
     [SerializeField] private float appOpenCooldownTime = 4f; // seconds between app open ads
+    [SerializeField] private bool removeAds = false; // Remove non-rewarded ads
+    
+    [Header("Persistence Settings")]
+    [SerializeField] private bool useEncryptedStorage = true;
+    [SerializeField] private bool enableCloudSync = false;
+    [SerializeField] private string removeAdsKey = "RemoveAds_Status";
+    [SerializeField] private string encryptionKey = "YourCustomEncryptionKey123"; // Change this in production
     
     [Header("Banner Settings")]
     [SerializeField] private bool useAdaptiveBanners = true;
@@ -104,12 +123,508 @@ public class AdsManager : MonoBehaviour
     private bool isColdStart = true;
     private bool hasShownFirstAppOpenAd = false;
 
+    // Public properties to expose all configurable values
+    public bool AutoShowAppOpenAds 
+    { 
+        get => autoShowAppOpenAds; 
+        set => autoShowAppOpenAds = value; 
+    }
+    
+    public bool EnableTestAds 
+    { 
+        get => enableTestAds; 
+        set => enableTestAds = value; 
+    }
+    
+    public float AppOpenCooldownTime 
+    { 
+        get => appOpenCooldownTime; 
+        set => appOpenCooldownTime = value; 
+    }
+    
+    public bool RemoveAds 
+    { 
+        get => removeAds; 
+        set 
+        { 
+            if (removeAds != value)
+            {
+                removeAds = value;
+                SaveRemoveAdsStatus(value);
+                OnRemoveAdsChangedInternal(value);
+                OnRemoveAdsChanged?.Invoke(value);
+            }
+        } 
+    }
+    
+    public bool UseAdaptiveBanners 
+    { 
+        get => useAdaptiveBanners; 
+        set => useAdaptiveBanners = value; 
+    }
+    
+    public bool EnableCollapsibleBanners 
+    { 
+        get => enableCollapsibleBanners; 
+        set => enableCollapsibleBanners = value; 
+    }
+    
+    public BannerSize PreferredBannerSize 
+    { 
+        get => preferredBannerSize; 
+        set => preferredBannerSize = value; 
+    }
+
+    // Current ad availability properties
+    public bool IsInitialized => isInitialized;
+    public bool IsShowingAd => isShowingAd;
+    public BannerPosition CurrentBannerPosition => ConvertFromAdPosition(currentBannerPosition);
+
+    // Ad Unit ID Properties - Android
+    public string AndroidBannerId 
+    { 
+        get => androidBannerId; 
+        set => androidBannerId = value; 
+    }
+    public string AndroidInterstitialId 
+    { 
+        get => androidInterstitialId; 
+        set => androidInterstitialId = value; 
+    }
+    public string AndroidRewardedId 
+    { 
+        get => androidRewardedId; 
+        set => androidRewardedId = value; 
+    }
+    public string AndroidRewardedInterstitialId 
+    { 
+        get => androidRewardedInterstitialId; 
+        set => androidRewardedInterstitialId = value; 
+    }
+    public string AndroidAppOpenId 
+    { 
+        get => androidAppOpenId; 
+        set => androidAppOpenId = value; 
+    }
+
+    // Ad Unit ID Properties - iOS
+    public string IosBannerId 
+    { 
+        get => iosBannerId; 
+        set => iosBannerId = value; 
+    }
+    public string IosInterstitialId 
+    { 
+        get => iosInterstitialId; 
+        set => iosInterstitialId = value; 
+    }
+    public string IosRewardedId 
+    { 
+        get => iosRewardedId; 
+        set => iosRewardedId = value; 
+    }
+    public string IosRewardedInterstitialId 
+    { 
+        get => iosRewardedInterstitialId; 
+        set => iosRewardedInterstitialId = value; 
+    }
+    public string IosAppOpenId 
+    { 
+        get => iosAppOpenId; 
+        set => iosAppOpenId = value; 
+    }
+
+    // Current Platform Ad IDs (Read-only)
+    public string CurrentBannerId => BANNER_ID;
+    public string CurrentInterstitialId => INTERSTITIAL_ID;
+    public string CurrentRewardedId => REWARDED_ID;
+    public string CurrentRewardedInterstitialId => REWARDED_INTERSTITIAL_ID;
+    public string CurrentAppOpenId => APP_OPEN_ID;
+
+    // Events for Remove Ads changes
+    public static System.Action<bool> OnRemoveAdsChanged;
+    public static System.Action<bool> OnRemoveAdsLoadedFromStorage;
+
+    private BannerPosition ConvertFromAdPosition(AdPosition position)
+    {
+        switch (position)
+        {
+            case AdPosition.Top: return BannerPosition.Top;
+            case AdPosition.Bottom: return BannerPosition.Bottom;
+            case AdPosition.TopLeft: return BannerPosition.TopLeft;
+            case AdPosition.TopRight: return BannerPosition.TopRight;
+            case AdPosition.BottomLeft: return BannerPosition.BottomLeft;
+            case AdPosition.BottomRight: return BannerPosition.BottomRight;
+            case AdPosition.Center: return BannerPosition.Center;
+            default: return BannerPosition.Bottom;
+        }
+    }
+
+    private void OnRemoveAdsChangedInternal(bool removeAdsEnabled)
+    {
+        Debug.Log($"Remove Ads {(removeAdsEnabled ? "enabled" : "disabled")}");
+        
+        if (removeAdsEnabled)
+        {
+            // Destroy and stop loading non-rewarded ads
+            DestroyBanner();
+            
+            if (interstitialAd != null)
+            {
+                interstitialAd.Destroy();
+                interstitialAd = null;
+            }
+            
+            if (appOpenAd != null)
+            {
+                appOpenAd.Destroy();
+                appOpenAd = null;
+            }
+        }
+        else
+        {
+            // Re-enable and load non-rewarded ads if initialized
+            if (isInitialized)
+            {
+                LoadBanner();
+                LoadInterstitialAd();
+                LoadAppOpenAd();
+            }
+        }
+    }
+
+    #region Persistence Methods
+    private void LoadRemoveAdsStatus()
+    {
+        bool savedValue = false;
+        
+        if (useEncryptedStorage)
+        {
+            savedValue = LoadEncryptedBool(removeAdsKey, false);
+        }
+        else
+        {
+            savedValue = PlayerPrefs.GetInt(removeAdsKey, 0) == 1;
+        }
+        
+        if (removeAds != savedValue)
+        {
+            removeAds = savedValue;
+            OnRemoveAdsChangedInternal(savedValue);
+            OnRemoveAdsLoadedFromStorage?.Invoke(savedValue);
+            Debug.Log($"Loaded Remove Ads status from storage: {savedValue}");
+        }
+        
+        // If cloud sync is enabled, check for cloud data
+        if (enableCloudSync)
+        {
+            RequestCloudData();
+        }
+    }
+    
+    private void SaveRemoveAdsStatus(bool value)
+    {
+        if (useEncryptedStorage)
+        {
+            SaveEncryptedBool(removeAdsKey, value);
+        }
+        else
+        {
+            PlayerPrefs.SetInt(removeAdsKey, value ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+        
+        Debug.Log($"Saved Remove Ads status to storage: {value}");
+        
+        // If cloud sync is enabled, save to cloud
+        if (enableCloudSync)
+        {
+            SaveToCloud(value);
+        }
+    }
+    
+    private void SaveEncryptedBool(string key, bool value)
+    {
+        string encryptedValue = EncryptString(value.ToString(), encryptionKey);
+        PlayerPrefs.SetString(key + "_encrypted", encryptedValue);
+        PlayerPrefs.Save();
+    }
+    
+    private bool LoadEncryptedBool(string key, bool defaultValue)
+    {
+        string encryptedValue = PlayerPrefs.GetString(key + "_encrypted", "");
+        if (string.IsNullOrEmpty(encryptedValue))
+        {
+            return defaultValue;
+        }
+        
+        try
+        {
+            string decryptedValue = DecryptString(encryptedValue, encryptionKey);
+            return bool.Parse(decryptedValue);
+        }
+        catch (System.Exception e)
+        {
+            Debug.LogWarning($"Failed to decrypt Remove Ads status: {e.Message}. Using default value.");
+            return defaultValue;
+        }
+    }
+    
+    private string EncryptString(string text, string key)
+    {
+        // Simple XOR encryption (replace with stronger encryption in production)
+        byte[] data = System.Text.Encoding.UTF8.GetBytes(text);
+        byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
+        
+        for (int i = 0; i < data.Length; i++)
+        {
+            data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
+        }
+        
+        return System.Convert.ToBase64String(data);
+    }
+    
+    private string DecryptString(string encryptedText, string key)
+    {
+        // Simple XOR decryption (replace with stronger encryption in production)
+        byte[] data = System.Convert.FromBase64String(encryptedText);
+        byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
+        
+        for (int i = 0; i < data.Length; i++)
+        {
+            data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
+        }
+        
+        return System.Text.Encoding.UTF8.GetString(data);
+    }
+    
+    // Cloud Save Integration Points
+    private void RequestCloudData()
+    {
+        // Implement your cloud save integration here
+        // Examples: Unity Cloud Save, Firebase, PlayFab, etc.
+        Debug.Log("Requesting Remove Ads status from cloud...");
+        
+        // Example Unity Cloud Save integration:
+        /*
+        Unity.Services.CloudSave.CloudSaveService.Instance.Data.LoadAsync(new List<string> { removeAdsKey })
+            .ContinueWith(task =>
+            {
+                if (task.IsCompletedSuccessfully)
+                {
+                    var results = task.Result;
+                    if (results.TryGetValue(removeAdsKey, out var cloudValue))
+                    {
+                        bool cloudRemoveAds = bool.Parse(cloudValue.Value.GetAs<string>());
+                        UnityEngine.MainThreadDispatcher.Instance().Enqueue(() =>
+                        {
+                            SyncWithCloudData(cloudRemoveAds);
+                        });
+                    }
+                }
+            });
+        */
+    }
+    
+    private void SaveToCloud(bool value)
+    {
+        // Implement your cloud save integration here
+        Debug.Log($"Saving Remove Ads status to cloud: {value}");
+        
+        // Example Unity Cloud Save integration:
+        /*
+        var data = new Dictionary<string, object> { { removeAdsKey, value } };
+        Unity.Services.CloudSave.CloudSaveService.Instance.Data.ForceSaveAsync(data);
+        */
+        
+        // Example Firebase integration:
+        /*
+        Firebase.Database.FirebaseDatabase.DefaultInstance
+            .GetReference("users").Child(Firebase.Auth.FirebaseAuth.DefaultInstance.CurrentUser.UserId)
+            .Child("removeAds").SetValueAsync(value);
+        */
+    }
+    
+    private void SyncWithCloudData(bool cloudValue)
+    {
+        // Resolve conflicts between local and cloud data
+        if (removeAds != cloudValue)
+        {
+            Debug.Log($"Cloud sync: Local={removeAds}, Cloud={cloudValue}");
+            
+            // You can implement your conflict resolution strategy here
+            // For now, cloud data takes precedence
+            RemoveAds = cloudValue;
+            Debug.Log($"Synced Remove Ads status with cloud: {cloudValue}");
+        }
+    }
+    
+    // Public methods for external integration
+    public void ForceLoadFromStorage()
+    {
+        LoadRemoveAdsStatus();
+    }
+    
+    public void ForceSaveToStorage()
+    {
+        SaveRemoveAdsStatus(removeAds);
+    }
+    
+    public void ClearRemoveAdsData()
+    {
+        if (useEncryptedStorage)
+        {
+            PlayerPrefs.DeleteKey(removeAdsKey + "_encrypted");
+        }
+        else
+        {
+            PlayerPrefs.DeleteKey(removeAdsKey);
+        }
+        PlayerPrefs.Save();
+        
+        RemoveAds = false;
+        Debug.Log("Remove Ads data cleared from storage");
+    }
+    
+    public bool HasRemoveAdsDataInStorage()
+    {
+        if (useEncryptedStorage)
+        {
+            return PlayerPrefs.HasKey(removeAdsKey + "_encrypted");
+        }
+        else
+        {
+            return PlayerPrefs.HasKey(removeAdsKey);
+        }
+    }
+    #endregion
+
+    #region Ad Unit ID Management
+    public void SetAndroidAdIds(string bannerId, string interstitialId, string rewardedId, string rewardedInterstitialId, string appOpenId)
+    {
+        androidBannerId = bannerId;
+        androidInterstitialId = interstitialId;
+        androidRewardedId = rewardedId;
+        androidRewardedInterstitialId = rewardedInterstitialId;
+        androidAppOpenId = appOpenId;
+        
+        Debug.Log("Android Ad Unit IDs updated");
+        RefreshAdsWithNewIds();
+    }
+
+    public void SetIosAdIds(string bannerId, string interstitialId, string rewardedId, string rewardedInterstitialId, string appOpenId)
+    {
+        iosBannerId = bannerId;
+        iosInterstitialId = interstitialId;
+        iosRewardedId = rewardedId;
+        iosRewardedInterstitialId = rewardedInterstitialId;
+        iosAppOpenId = appOpenId;
+        
+        Debug.Log("iOS Ad Unit IDs updated");
+        RefreshAdsWithNewIds();
+    }
+
+    public void SetAllAdIds(
+        string androidBanner, string androidInterstitial, string androidRewarded, string androidRewardedInterstitial, string androidAppOpen,
+        string iosBanner, string iosInterstitial, string iosRewarded, string iosRewardedInterstitial, string iosAppOpen)
+    {
+        // Set Android IDs
+        androidBannerId = androidBanner;
+        androidInterstitialId = androidInterstitial;
+        androidRewardedId = androidRewarded;
+        androidRewardedInterstitialId = androidRewardedInterstitial;
+        androidAppOpenId = androidAppOpen;
+        
+        // Set iOS IDs
+        iosBannerId = iosBanner;
+        iosInterstitialId = iosInterstitial;
+        iosRewardedId = iosRewarded;
+        iosRewardedInterstitialId = iosRewardedInterstitial;
+        iosAppOpenId = iosAppOpen;
+        
+        Debug.Log("All Ad Unit IDs updated for both platforms");
+        RefreshAdsWithNewIds();
+    }
+
+    private void RefreshAdsWithNewIds()
+    {
+        if (!isInitialized)
+        {
+            Debug.Log("AdsManager not initialized yet. New Ad IDs will be used when initialized.");
+            return;
+        }
+
+        Debug.Log("Refreshing ads with new Ad Unit IDs...");
+        
+        // Destroy existing ads
+        DestroyBanner();
+        
+        if (interstitialAd != null)
+        {
+            interstitialAd.Destroy();
+            interstitialAd = null;
+        }
+        
+        if (rewardedAd != null)
+        {
+            rewardedAd.Destroy();
+            rewardedAd = null;
+        }
+        
+        if (rewardedInterstitialAd != null)
+        {
+            rewardedInterstitialAd.Destroy();
+            rewardedInterstitialAd = null;
+        }
+        
+        if (appOpenAd != null)
+        {
+            appOpenAd.Destroy();
+            appOpenAd = null;
+        }
+
+        // Reload all ads with new IDs
+        LoadAllAds();
+    }
+
+    // Utility methods for getting current platform specific IDs
+    public void LogCurrentAdIds()
+    {
+        Debug.Log($"Current Platform Ad IDs:");
+        Debug.Log($"Banner: {CurrentBannerId}");
+        Debug.Log($"Interstitial: {CurrentInterstitialId}");
+        Debug.Log($"Rewarded: {CurrentRewardedId}");
+        Debug.Log($"Rewarded Interstitial: {CurrentRewardedInterstitialId}");
+        Debug.Log($"App Open: {CurrentAppOpenId}");
+    }
+
+    public bool AreAdIdsValid()
+    {
+        return !string.IsNullOrEmpty(CurrentBannerId) &&
+               !string.IsNullOrEmpty(CurrentInterstitialId) &&
+               !string.IsNullOrEmpty(CurrentRewardedId) &&
+               !string.IsNullOrEmpty(CurrentRewardedInterstitialId) &&
+               !string.IsNullOrEmpty(CurrentAppOpenId);
+    }
+
+    public bool AreTestAdIds()
+    {
+        // Check if current IDs are Google's test IDs
+        return CurrentBannerId.Contains("ca-app-pub-3940256099942544") ||
+               CurrentInterstitialId.Contains("ca-app-pub-3940256099942544") ||
+               CurrentRewardedId.Contains("ca-app-pub-3940256099942544") ||
+               CurrentRewardedInterstitialId.Contains("ca-app-pub-3940256099942544") ||
+               CurrentAppOpenId.Contains("ca-app-pub-3940256099942544");
+    }
+    #endregion
+
     private void Awake()
     {
         if (instance == null)
         {
             instance = this;
             DontDestroyOnLoad(gameObject);
+            LoadRemoveAdsStatus(); // Load saved Remove Ads status first
             InitializeAds();
         }
         else
@@ -240,11 +755,17 @@ public class AdsManager : MonoBehaviour
 
     private void LoadAllAds()
     {
-        LoadInterstitialAd();
+        // Always load rewarded ads
         LoadRewardedAd();
         LoadRewardedInterstitialAd();
-        LoadAppOpenAd();
-        LoadBanner();
+        
+        // Only load non-rewarded ads if removeAds is false
+        if (!removeAds)
+        {
+            LoadInterstitialAd();
+            LoadAppOpenAd();
+            LoadBanner();
+        }
     }
 
     // App State Management for App Open Ads
@@ -283,6 +804,12 @@ public class AdsManager : MonoBehaviour
         if (!isInitialized) 
         {
             Debug.LogWarning("AdMob not initialized yet");
+            return;
+        }
+
+        if (removeAds)
+        {
+            Debug.Log("Banner ads are disabled due to Remove Ads setting");
             return;
         }
 
@@ -435,6 +962,12 @@ public class AdsManager : MonoBehaviour
 
     public void ShowBanner(bool show)
     {
+        if (removeAds && show)
+        {
+            Debug.Log("Cannot show banner - ads are disabled due to Remove Ads setting");
+            return;
+        }
+
         isBannerVisible = show;
         
         if (bannerView != null && isBannerLoaded)
@@ -510,29 +1043,6 @@ public class AdsManager : MonoBehaviour
         {
             useAdaptiveBanners = enable;
             Debug.Log($"Adaptive banners {(enable ? "enabled" : "disabled")}");
-            
-            // Reload banner with new setting
-            if (bannerView != null)
-            {
-                bool wasVisible = isBannerVisible;
-                DestroyBanner();
-                LoadBanner();
-                
-                // Restore visibility state
-                if (wasVisible)
-                {
-                    ShowBanner(true);
-                }
-            }
-        }
-    }
-
-    public void EnableCollapsibleBanners(bool enable)
-    {
-        if (enableCollapsibleBanners != enable)
-        {
-            enableCollapsibleBanners = enable;
-            Debug.Log($"Collapsible banners {(enable ? "enabled" : "disabled")}");
             
             // Reload banner with new setting
             if (bannerView != null)
@@ -633,6 +1143,12 @@ public class AdsManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
+        if (removeAds)
+        {
+            Debug.Log("Interstitial ads are disabled due to Remove Ads setting");
+            return;
+        }
+
         if (interstitialAd != null)
         {
             interstitialAd.Destroy();
@@ -671,6 +1187,13 @@ public class AdsManager : MonoBehaviour
 
     public void ShowInterstitial(Action onSuccess, Action onFailure)
     {
+        if (removeAds)
+        {
+            Debug.Log("Cannot show interstitial - ads are disabled due to Remove Ads setting");
+            onFailure?.Invoke();
+            return;
+        }
+
         if (interstitialAd != null && interstitialAd.CanShowAd())
         {
             isShowingAd = true;
@@ -902,6 +1425,12 @@ public class AdsManager : MonoBehaviour
     {
         if (!isInitialized) return;
 
+        if (removeAds)
+        {
+            Debug.Log("App open ads are disabled due to Remove Ads setting");
+            return;
+        }
+
         var adRequest = CreateAdRequest();
         AppOpenAd.Load(APP_OPEN_ID, adRequest,
             (AppOpenAd ad, LoadAdError error) =>
@@ -943,6 +1472,13 @@ public class AdsManager : MonoBehaviour
 
     public void ShowAppOpenAd(Action onSuccess, Action onFailure)
     {
+        if (removeAds)
+        {
+            Debug.Log("Cannot show app open ad - ads are disabled due to Remove Ads setting");
+            onFailure?.Invoke();
+            return;
+        }
+
         if (isShowingAd || isAppOpenAdShowing)
         {
             onFailure?.Invoke();
@@ -1171,8 +1707,6 @@ public class AdsManager : MonoBehaviour
     {
         return rewardedInterstitialAd != null && rewardedInterstitialAd.CanShowAd();
     }
-
-
 
     public void EnableAutoAppOpenAds(bool enable)
     {
