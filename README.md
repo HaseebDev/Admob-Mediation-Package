@@ -74,6 +74,14 @@ A powerful and production-ready AdMob integration package with Unity Ads mediati
    - Select the downloaded `.unitypackage` file
    - Import all assets
 
+3. **Install Unity Ads Mediation Adapter**
+   - **Option A**: Download from [Google's Unity Ads Mediation page](https://developers.google.com/admob/unity/mediation/unity)
+   - **Option B**: Use Package Manager with OpenUPM:
+     - Open `Window > Package Manager`
+     - Under "My registries" find `package.openupm.com`
+     - Find the "Google Mobile Ads Unity Ads Mediation" package and install it
+     - Or use openupm CLI: `openupm add com.google.ads.mobile.mediation.unity`
+
 ### Option 2: Manual Setup with Dependencies
 
 #### Install Node.js
