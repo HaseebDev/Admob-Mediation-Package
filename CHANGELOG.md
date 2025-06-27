@@ -5,6 +5,61 @@ All notable changes to the Autech AdMob Mediation Unity Ads package will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.0.2] - 2024-12-27
+
+### 🚀 Added
+- **Enhanced UI Integration**
+  - Button state management based on ad availability
+  - Real-time button enable/disable based on ad readiness
+  - Visual feedback with color-coded Remove Ads button (Red/Green)
+  - Event-driven UI updates for better user experience
+
+- **Improved Banner Visibility Control**
+  - First-time loading detection and management
+  - Smart banner visibility based on `showBannerOnStart` setting
+  - Proper timing control after consent and initialization
+  - Automatic banner state management after loading completion
+
+- **Debug Logging System**
+  - Event-based logging system
+  - UI text component integration for real-time log display
+  - Configurable logging levels with detailed feedback
+  - Clean, professional logging without emojis
+
+### 🔧 Enhanced
+- **Code Quality & Maintainability**
+  - Removed unnecessary comments and debug logs
+  - Cleaner, more professional codebase
+  - Improved code organization and readability
+  - Better separation of concerns
+
+- **Banner Management**
+  - Enhanced banner loading and visibility logic
+  - Improved first-time loading detection
+  - Better coordination between AdsManager and VerifyAdmob
+  - Automatic banner state restoration
+
+- **UI/UX Improvements**
+  - Dynamic button states based on ad availability
+  - Visual Remove Ads status indication
+  - Real-time feedback for user interactions
+  - Professional logging output
+
+### 🛠️ Technical Improvements
+- Streamlined initialization process with proper timing
+- Enhanced event system for UI updates
+- Improved error handling and state management
+- Better memory management and resource cleanup
+- Production-ready logging system
+
+### 📦 Package Information
+- **File Size**: ~21 KiB (optimized)
+- **Unity Compatibility**: 2020.3+
+- **Platform Support**: Android, iOS
+- **Dependencies**: Google Mobile Ads Unity SDK 10.2.0+
+
+---
+
 ## [2.0.1] - 2024-12-27
 
 ### 🚀 Added
@@ -37,7 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Platform-specific ID configuration
 
 - **Comprehensive Testing Suite**
-  - TestCalls script expanded to test all ad types
+  - TestCalls script expanded to test all ad types (now integrated into AdsExampleUI)
   - Banner management testing (show/hide/position/size)
   - Remove Ads workflow testing with automated sequences
   - Context menu integration for easy testing

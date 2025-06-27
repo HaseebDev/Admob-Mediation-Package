@@ -1,15 +1,25 @@
 # 🎮 Autech AdMob Mediation Unity Ads
 
 ![Unity Version](https://img.shields.io/badge/Unity-2020.3%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0.1-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-2.0.2-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Release](https://img.shields.io/github/v/release/HaseebDev/Admob-Mediation-Package?include_prereleases)
 
 A powerful and production-ready AdMob integration package with Unity Ads mediation for Unity projects. Featuring advanced banner controls, comprehensive ad management, Remove Ads system with persistence, and enterprise-grade error handling.
 
-## 🎉 Latest Release - v2.0.1
+## 🎉 Latest Release - v2.0.2
 
-**[📥 Download v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1)**
+**[📥 Download v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2)**
+
+### 🚀 What's New in v2.0.2:
+- 🎯 **Enhanced UI Integration** - Dynamic button states based on ad availability with real-time feedback
+- 🎨 **Visual Remove Ads Indicator** - Color-coded button (Red/Green) showing current Remove Ads status
+- 📱 **Smart Banner Visibility Control** - First-time loading detection with proper timing after consent
+- 📝 **Professional Debug Logging** - Event-based logging system with UI text integration
+- 🧹 **Code Quality Improvements** - Cleaner, more maintainable codebase with optimized performance
+- ⚡ **Real-time UI Updates** - Event-driven UI state management for better user experience
+- 🔧 **Enhanced Banner Management** - Improved coordination between AdsManager and VerifyAdmob
+- 🎮 **Better User Experience** - Professional logging output and streamlined initialization
 
 ### 🚀 What's New in v2.0.1:
 - 🚫 **Complete Remove Ads System** - Disable non-rewarded ads while keeping rewarded ads active
@@ -49,11 +59,79 @@ A powerful and production-ready AdMob integration package with Unity Ads mediati
 - **Validation Tools** - Check for test IDs and configuration errors
 
 ### 🧪 Testing & Debugging
-- **Comprehensive Test Suite** - Test all ad types with various callback options
+- **Comprehensive Test Suite** - Test all ad types with various callback options (integrated in AdsExampleUI)
 - **Remove Ads Testing** - Complete workflow validation
 - **Automated Testing** - Sequential test execution with timing
 - **Context Menu Integration** - Right-click testing from Inspector
-- **Detailed Logging** - Emoji-based feedback with configurable verbosity
+- **Detailed Logging** - Professional feedback with configurable verbosity
+
+### 🎨 UI Integration
+- **Dynamic Button States** - Buttons automatically enable/disable based on ad availability
+- **Visual Remove Ads Indicator** - Color-coded button showing current status (Red=Enabled, Green=Disabled)
+- **Real-time UI Updates** - Event-driven updates for immediate user feedback
+- **Professional Logging Display** - UI text component integration for real-time log viewing
+- **Smart Banner Control** - Automatic banner visibility management with first-time loading detection
+
+### Professional Debug Logging
+```csharp
+// Event-based logging system with UI integration
+// Assign a TMP_Text component to debugLogText in AdsExampleUI
+
+// Log messages automatically appear in UI
+AdsExampleUI.OnDebugLog?.Invoke("Custom log message");
+
+// Clear debug log
+AdsExampleUI.Instance.ClearDebugLog();
+
+// Check if detailed logging is enabled
+if (showDetailedLogs)
+{
+    // Log messages will be displayed
+}
+```
+
+### Dynamic Ad Unit ID Configuration
+```csharp
+// Set platform-specific Ad Unit IDs at runtime
+VerifyAdmob verifyScript = FindObjectOfType<VerifyAdmob>();
+verifyScript.SetAndroidAdIds(
+    "ca-app-pub-YOUR_ID/banner",
+    "ca-app-pub-YOUR_ID/interstitial",
+    "ca-app-pub-YOUR_ID/rewarded",
+    "ca-app-pub-YOUR_ID/rewarded_interstitial", 
+    "ca-app-pub-YOUR_ID/app_open"
+);
+
+// Validate configuration
+verifyScript.ValidateAdIds();
+verifyScript.CheckIfTestAdIds();
+```
+
+### Comprehensive Testing
+```csharp
+AdsExampleUI testScript = FindObjectOfType<AdsExampleUI>();
+
+// Test all ad types sequentially
+testScript.TestAllAdsSequentially();
+
+// Test Remove Ads workflow
+testScript.TestRemoveAdsFunctionality();
+
+// Check system status
+testScript.CheckAllAdStatus();
+```
+
+### Rewarded Ad with Full Callbacks
+```csharp
+AdsManager.Instance.ShowRewarded(
+    (reward) => {
+        Debug.Log($"Reward granted: {reward.Amount} {reward.Type}");
+        // Give player reward
+    },
+    () => Debug.Log("Ad completed successfully"),
+    () => Debug.Log("Ad failed to show")
+);
+```
 
 ## 📋 Prerequisites
 
@@ -66,7 +144,7 @@ A powerful and production-ready AdMob integration package with Unity Ads mediati
 ### Step 1
 
 1. **Download Latest Release**
-   - [📥 Download v2.0.1.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.1/2.0.1.unitypackage)
+   - [📥 Download v2.0.2.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.2/2.0.2.unitypackage)
    - File size: ~21 KiB
 
 2. **Import Package**
@@ -146,56 +224,48 @@ AdsManager.Instance.EnableCollapsibleBanners(true);
 AdsManager.Instance.EnableAdaptiveBanners(true);
 ```
 
-### Dynamic Ad Unit ID Configuration
+### UI Integration & Button Management
 ```csharp
-// Set platform-specific Ad Unit IDs at runtime
-VerifyAdmob verifyScript = FindObjectOfType<VerifyAdmob>();
-verifyScript.SetAndroidAdIds(
-    "ca-app-pub-YOUR_ID/banner",
-    "ca-app-pub-YOUR_ID/interstitial",
-    "ca-app-pub-YOUR_ID/rewarded",
-    "ca-app-pub-YOUR_ID/rewarded_interstitial", 
-    "ca-app-pub-YOUR_ID/app_open"
-);
+// Buttons automatically update based on ad availability
+// No code needed - handled automatically by AdsExampleUI
 
-// Validate configuration
-verifyScript.ValidateAdIds();
-verifyScript.CheckIfTestAdIds();
+// Check if buttons are interactable
+bool canShowRewarded = showRewardedBtn.interactable;
+bool canShowInterstitial = showInterstitialBtn.interactable;
+bool canToggleBanner = toggleBannerBtn.interactable;
+
+// Remove Ads button color indicates status
+// Red = Remove Ads enabled, Green = Remove Ads disabled
+Image removeAdsButtonImage = toggleRemoveAdsBtn.GetComponent<Image>();
+Color currentStatus = removeAdsButtonImage.color;
 ```
 
-### Comprehensive Testing
+### Smart Banner Visibility Control
 ```csharp
-TestCalls testScript = FindObjectOfType<TestCalls>();
+// Banner automatically shows/hides based on first-time loading and settings
+// Configure in VerifyAdmob Inspector:
+// - showBannerOnStart = true/false
+// - removeAds = true/false
 
-// Test all ad types sequentially
-testScript.TestAllAdsSequentially();
+// Manual control after initialization
+AdsManager.Instance.SetInitialBannerVisibility(true);  // Show banner
+AdsManager.Instance.SetInitialBannerVisibility(false); // Hide banner
 
-// Test Remove Ads workflow
-testScript.TestRemoveAdsFunctionality();
-
-// Check system status
-testScript.CheckAllAdStatus();
-```
-
-### Rewarded Ad with Full Callbacks
-```csharp
-AdsManager.Instance.ShowRewarded(
-    (reward) => {
-        Debug.Log($"Reward granted: {reward.Amount} {reward.Type}");
-        // Give player reward
-    },
-    () => Debug.Log("Ad completed successfully"),
-    () => Debug.Log("Ad failed to show")
-);
+// Check first-time loading status
+if (AdsManager.Instance.IsFirstTimeLoading)
+{
+    Debug.Log("Still in first-time loading phase");
+}
 ```
 
 ## 📊 Version History
 
 | Version | Release Date | Key Features |
 |---------|-------------|--------------|
-| **[v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1)** | **Latest** | **Remove Ads system, persistence, full configuration exposure, comprehensive testing** |
-| [v2.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.0) | Previous | Adaptive banners, collapsible support, revenue tracking |
-| [v1.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v1.0.0) | Legacy | Initial release with basic ad integration |
+| **[v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2)** | **Latest** | **Enhanced UI integration, visual remove ads indicator, smart banner visibility control, professional debug logging, code quality improvements, real-time UI updates, enhanced banner management, better user experience** |
+| [v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1) | Previous | Remove Ads system, persistence, full configuration exposure, comprehensive testing |
+| [v2.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.0) | Legacy | Adaptive banners, collapsible support, revenue tracking |
+| [v1.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v1.0.0) | Initial release | Basic ad integration |
 
 ## 🔧 Configuration & Troubleshooting
 
@@ -222,24 +292,30 @@ AdsManager.Instance.ShowRewarded(
 - **Remove Ads not persisting**: Check storage settings and encryption configuration
 - **Revenue not tracking**: Implement `TrackAdRevenue()` method
 
+### UI Integration Issues
+- **Buttons not updating**: Ensure AdsExampleUI component is properly configured
+- **Remove Ads button color not changing**: Check if Image component is assigned
+- **Debug logs not appearing**: Verify TMP_Text component is assigned to debugLogText
+- **Banner not showing on first load**: Check showBannerOnStart and removeAds settings
+
 ## 🧪 Testing & Development
 
 ### Context Menu Testing
 Right-click on any script component for instant testing:
 - **VerifyAdmob**: Toggle Remove Ads, check status, validate IDs
-- **TestCalls**: Show ads, test workflows, check availability
+- **AdsExampleUI**: Show ads, test workflows, check availability, comprehensive testing
 - **AdsManager**: Force load/save, clear data, log current state
 
 ### Automated Testing
 ```csharp
 // Sequential ad testing
-TestCalls.Instance.TestAllAdsSequentially();
+AdsExampleUI.Instance.TestAllAdsSequentially();
 
 // Remove Ads workflow testing  
-TestCalls.Instance.TestRemoveAdsFunctionality();
+AdsExampleUI.Instance.TestRemoveAdsFunctionality();
 
 // Comprehensive status checking
-TestCalls.Instance.CheckAllAdStatus();
+AdsExampleUI.Instance.CheckAllAdStatus();
 ```
 
 ## 🚀 Roadmap

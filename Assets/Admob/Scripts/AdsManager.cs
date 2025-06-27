@@ -52,7 +52,7 @@ public class AdsManager : MonoBehaviour
     [SerializeField] private string androidRewardedId = "ca-app-pub-3940256099942544/5224354917";
     [SerializeField] private string androidRewardedInterstitialId = "ca-app-pub-3940256099942544/5354046379";
     [SerializeField] private string androidAppOpenId = "ca-app-pub-3940256099942544/9257395921";
-    
+
     [Header("Ad Unit IDs - iOS")]
     [SerializeField] private string iosBannerId = "ca-app-pub-3940256099942544/2934735716";
     [SerializeField] private string iosInterstitialId = "ca-app-pub-3940256099942544/4411468910";
@@ -83,18 +83,18 @@ public class AdsManager : MonoBehaviour
     [SerializeField] private bool enableTestAds = true;
     [SerializeField] private float appOpenCooldownTime = 4f; // seconds between app open ads
     [SerializeField] private bool removeAds = false; // Remove non-rewarded ads
-    
+
     [Header("Persistence Settings")]
     [SerializeField] private bool useEncryptedStorage = true;
     [SerializeField] private bool enableCloudSync = false;
     [SerializeField] private string removeAdsKey = "RemoveAds_Status";
     [SerializeField] private string encryptionKey = "YourCustomEncryptionKey123"; // Change this in production
-    
+
     [Header("Banner Settings")]
     [SerializeField] private bool useAdaptiveBanners = true;
     [SerializeField] private bool enableCollapsibleBanners = false;
     [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
-    
+
     private BannerView bannerView;
     private InterstitialAd interstitialAd;
     private RewardedAd rewardedAd;
@@ -122,31 +122,32 @@ public class AdsManager : MonoBehaviour
     // Cold start management
     private bool isColdStart = true;
     private bool hasShownFirstAppOpenAd = false;
+    private bool isFirstTimeLoading = true;
 
     // Public properties to expose all configurable values
-    public bool AutoShowAppOpenAds 
-    { 
-        get => autoShowAppOpenAds; 
-        set => autoShowAppOpenAds = value; 
+    public bool AutoShowAppOpenAds
+    {
+        get => autoShowAppOpenAds;
+        set => autoShowAppOpenAds = value;
     }
-    
-    public bool EnableTestAds 
-    { 
-        get => enableTestAds; 
-        set => enableTestAds = value; 
+
+    public bool EnableTestAds
+    {
+        get => enableTestAds;
+        set => enableTestAds = value;
     }
-    
-    public float AppOpenCooldownTime 
-    { 
-        get => appOpenCooldownTime; 
-        set => appOpenCooldownTime = value; 
+
+    public float AppOpenCooldownTime
+    {
+        get => appOpenCooldownTime;
+        set => appOpenCooldownTime = value;
     }
-    
-    public bool RemoveAds 
-    { 
-        get => removeAds; 
-        set 
-        { 
+
+    public bool RemoveAds
+    {
+        get => removeAds;
+        set
+        {
             if (removeAds != value)
             {
                 removeAds = value;
@@ -154,84 +155,85 @@ public class AdsManager : MonoBehaviour
                 OnRemoveAdsChangedInternal(value);
                 OnRemoveAdsChanged?.Invoke(value);
             }
-        } 
+        }
     }
-    
-    public bool UseAdaptiveBanners 
-    { 
-        get => useAdaptiveBanners; 
-        set => useAdaptiveBanners = value; 
+
+    public bool UseAdaptiveBanners
+    {
+        get => useAdaptiveBanners;
+        set => useAdaptiveBanners = value;
     }
-    
-    public bool EnableCollapsibleBanners 
-    { 
-        get => enableCollapsibleBanners; 
-        set => enableCollapsibleBanners = value; 
+
+    public bool EnableCollapsibleBanners
+    {
+        get => enableCollapsibleBanners;
+        set => enableCollapsibleBanners = value;
     }
-    
-    public BannerSize PreferredBannerSize 
-    { 
-        get => preferredBannerSize; 
-        set => preferredBannerSize = value; 
+
+    public BannerSize PreferredBannerSize
+    {
+        get => preferredBannerSize;
+        set => preferredBannerSize = value;
     }
 
     // Current ad availability properties
     public bool IsInitialized => isInitialized;
     public bool IsShowingAd => isShowingAd;
+    public bool IsFirstTimeLoading => isFirstTimeLoading;
     public BannerPosition CurrentBannerPosition => ConvertFromAdPosition(currentBannerPosition);
 
     // Ad Unit ID Properties - Android
-    public string AndroidBannerId 
-    { 
-        get => androidBannerId; 
-        set => androidBannerId = value; 
+    public string AndroidBannerId
+    {
+        get => androidBannerId;
+        set => androidBannerId = value;
     }
-    public string AndroidInterstitialId 
-    { 
-        get => androidInterstitialId; 
-        set => androidInterstitialId = value; 
+    public string AndroidInterstitialId
+    {
+        get => androidInterstitialId;
+        set => androidInterstitialId = value;
     }
-    public string AndroidRewardedId 
-    { 
-        get => androidRewardedId; 
-        set => androidRewardedId = value; 
+    public string AndroidRewardedId
+    {
+        get => androidRewardedId;
+        set => androidRewardedId = value;
     }
-    public string AndroidRewardedInterstitialId 
-    { 
-        get => androidRewardedInterstitialId; 
-        set => androidRewardedInterstitialId = value; 
+    public string AndroidRewardedInterstitialId
+    {
+        get => androidRewardedInterstitialId;
+        set => androidRewardedInterstitialId = value;
     }
-    public string AndroidAppOpenId 
-    { 
-        get => androidAppOpenId; 
-        set => androidAppOpenId = value; 
+    public string AndroidAppOpenId
+    {
+        get => androidAppOpenId;
+        set => androidAppOpenId = value;
     }
 
     // Ad Unit ID Properties - iOS
-    public string IosBannerId 
-    { 
-        get => iosBannerId; 
-        set => iosBannerId = value; 
+    public string IosBannerId
+    {
+        get => iosBannerId;
+        set => iosBannerId = value;
     }
-    public string IosInterstitialId 
-    { 
-        get => iosInterstitialId; 
-        set => iosInterstitialId = value; 
+    public string IosInterstitialId
+    {
+        get => iosInterstitialId;
+        set => iosInterstitialId = value;
     }
-    public string IosRewardedId 
-    { 
-        get => iosRewardedId; 
-        set => iosRewardedId = value; 
+    public string IosRewardedId
+    {
+        get => iosRewardedId;
+        set => iosRewardedId = value;
     }
-    public string IosRewardedInterstitialId 
-    { 
-        get => iosRewardedInterstitialId; 
-        set => iosRewardedInterstitialId = value; 
+    public string IosRewardedInterstitialId
+    {
+        get => iosRewardedInterstitialId;
+        set => iosRewardedInterstitialId = value;
     }
-    public string IosAppOpenId 
-    { 
-        get => iosAppOpenId; 
-        set => iosAppOpenId = value; 
+    public string IosAppOpenId
+    {
+        get => iosAppOpenId;
+        set => iosAppOpenId = value;
     }
 
     // Current Platform Ad IDs (Read-only)
@@ -242,8 +244,8 @@ public class AdsManager : MonoBehaviour
     public string CurrentAppOpenId => APP_OPEN_ID;
 
     // Events for Remove Ads changes
-    public static System.Action<bool> OnRemoveAdsChanged;
-    public static System.Action<bool> OnRemoveAdsLoadedFromStorage;
+    public static Action<bool> OnRemoveAdsChanged;
+    public static Action<bool> OnRemoveAdsLoadedFromStorage;
 
     private BannerPosition ConvertFromAdPosition(AdPosition position)
     {
@@ -263,18 +265,18 @@ public class AdsManager : MonoBehaviour
     private void OnRemoveAdsChangedInternal(bool removeAdsEnabled)
     {
         Debug.Log($"Remove Ads {(removeAdsEnabled ? "enabled" : "disabled")}");
-        
+
         if (removeAdsEnabled)
         {
             // Destroy and stop loading non-rewarded ads
             DestroyBanner();
-            
+
             if (interstitialAd != null)
             {
                 interstitialAd.Destroy();
                 interstitialAd = null;
             }
-            
+
             if (appOpenAd != null)
             {
                 appOpenAd.Destroy();
@@ -297,7 +299,7 @@ public class AdsManager : MonoBehaviour
     private void LoadRemoveAdsStatus()
     {
         bool savedValue = false;
-        
+
         if (useEncryptedStorage)
         {
             savedValue = LoadEncryptedBool(removeAdsKey, false);
@@ -306,7 +308,7 @@ public class AdsManager : MonoBehaviour
         {
             savedValue = PlayerPrefs.GetInt(removeAdsKey, 0) == 1;
         }
-        
+
         if (removeAds != savedValue)
         {
             removeAds = savedValue;
@@ -314,14 +316,14 @@ public class AdsManager : MonoBehaviour
             OnRemoveAdsLoadedFromStorage?.Invoke(savedValue);
             Debug.Log($"Loaded Remove Ads status from storage: {savedValue}");
         }
-        
+
         // If cloud sync is enabled, check for cloud data
         if (enableCloudSync)
         {
             RequestCloudData();
         }
     }
-    
+
     private void SaveRemoveAdsStatus(bool value)
     {
         if (useEncryptedStorage)
@@ -333,23 +335,23 @@ public class AdsManager : MonoBehaviour
             PlayerPrefs.SetInt(removeAdsKey, value ? 1 : 0);
             PlayerPrefs.Save();
         }
-        
+
         Debug.Log($"Saved Remove Ads status to storage: {value}");
-        
+
         // If cloud sync is enabled, save to cloud
         if (enableCloudSync)
         {
             SaveToCloud(value);
         }
     }
-    
+
     private void SaveEncryptedBool(string key, bool value)
     {
         string encryptedValue = EncryptString(value.ToString(), encryptionKey);
         PlayerPrefs.SetString(key + "_encrypted", encryptedValue);
         PlayerPrefs.Save();
     }
-    
+
     private bool LoadEncryptedBool(string key, bool defaultValue)
     {
         string encryptedValue = PlayerPrefs.GetString(key + "_encrypted", "");
@@ -357,7 +359,7 @@ public class AdsManager : MonoBehaviour
         {
             return defaultValue;
         }
-        
+
         try
         {
             string decryptedValue = DecryptString(encryptedValue, encryptionKey);
@@ -369,42 +371,42 @@ public class AdsManager : MonoBehaviour
             return defaultValue;
         }
     }
-    
+
     private string EncryptString(string text, string key)
     {
         // Simple XOR encryption (replace with stronger encryption in production)
         byte[] data = System.Text.Encoding.UTF8.GetBytes(text);
         byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
-        
+
         for (int i = 0; i < data.Length; i++)
         {
             data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
         }
-        
-        return System.Convert.ToBase64String(data);
+
+        return Convert.ToBase64String(data);
     }
-    
+
     private string DecryptString(string encryptedText, string key)
     {
         // Simple XOR decryption (replace with stronger encryption in production)
         byte[] data = System.Convert.FromBase64String(encryptedText);
         byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
-        
+
         for (int i = 0; i < data.Length; i++)
         {
             data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
         }
-        
+
         return System.Text.Encoding.UTF8.GetString(data);
     }
-    
+
     // Cloud Save Integration Points
     private void RequestCloudData()
     {
         // Implement your cloud save integration here
         // Examples: Unity Cloud Save, Firebase, PlayFab, etc.
         Debug.Log("Requesting Remove Ads status from cloud...");
-        
+
         // Example Unity Cloud Save integration:
         /*
         Unity.Services.CloudSave.CloudSaveService.Instance.Data.LoadAsync(new List<string> { removeAdsKey })
@@ -425,18 +427,18 @@ public class AdsManager : MonoBehaviour
             });
         */
     }
-    
+
     private void SaveToCloud(bool value)
     {
         // Implement your cloud save integration here
         Debug.Log($"Saving Remove Ads status to cloud: {value}");
-        
+
         // Example Unity Cloud Save integration:
         /*
         var data = new Dictionary<string, object> { { removeAdsKey, value } };
         Unity.Services.CloudSave.CloudSaveService.Instance.Data.ForceSaveAsync(data);
         */
-        
+
         // Example Firebase integration:
         /*
         Firebase.Database.FirebaseDatabase.DefaultInstance
@@ -444,32 +446,32 @@ public class AdsManager : MonoBehaviour
             .Child("removeAds").SetValueAsync(value);
         */
     }
-    
+
     private void SyncWithCloudData(bool cloudValue)
     {
         // Resolve conflicts between local and cloud data
         if (removeAds != cloudValue)
         {
             Debug.Log($"Cloud sync: Local={removeAds}, Cloud={cloudValue}");
-            
+
             // You can implement your conflict resolution strategy here
             // For now, cloud data takes precedence
             RemoveAds = cloudValue;
             Debug.Log($"Synced Remove Ads status with cloud: {cloudValue}");
         }
     }
-    
+
     // Public methods for external integration
     public void ForceLoadFromStorage()
     {
         LoadRemoveAdsStatus();
     }
-    
+
     public void ForceSaveToStorage()
     {
         SaveRemoveAdsStatus(removeAds);
     }
-    
+
     public void ClearRemoveAdsData()
     {
         if (useEncryptedStorage)
@@ -481,11 +483,11 @@ public class AdsManager : MonoBehaviour
             PlayerPrefs.DeleteKey(removeAdsKey);
         }
         PlayerPrefs.Save();
-        
+
         RemoveAds = false;
         Debug.Log("Remove Ads data cleared from storage");
     }
-    
+
     public bool HasRemoveAdsDataInStorage()
     {
         if (useEncryptedStorage)
@@ -507,7 +509,7 @@ public class AdsManager : MonoBehaviour
         androidRewardedId = rewardedId;
         androidRewardedInterstitialId = rewardedInterstitialId;
         androidAppOpenId = appOpenId;
-        
+
         Debug.Log("Android Ad Unit IDs updated");
         RefreshAdsWithNewIds();
     }
@@ -519,7 +521,7 @@ public class AdsManager : MonoBehaviour
         iosRewardedId = rewardedId;
         iosRewardedInterstitialId = rewardedInterstitialId;
         iosAppOpenId = appOpenId;
-        
+
         Debug.Log("iOS Ad Unit IDs updated");
         RefreshAdsWithNewIds();
     }
@@ -534,14 +536,14 @@ public class AdsManager : MonoBehaviour
         androidRewardedId = androidRewarded;
         androidRewardedInterstitialId = androidRewardedInterstitial;
         androidAppOpenId = androidAppOpen;
-        
+
         // Set iOS IDs
         iosBannerId = iosBanner;
         iosInterstitialId = iosInterstitial;
         iosRewardedId = iosRewarded;
         iosRewardedInterstitialId = iosRewardedInterstitial;
         iosAppOpenId = iosAppOpen;
-        
+
         Debug.Log("All Ad Unit IDs updated for both platforms");
         RefreshAdsWithNewIds();
     }
@@ -555,28 +557,28 @@ public class AdsManager : MonoBehaviour
         }
 
         Debug.Log("Refreshing ads with new Ad Unit IDs...");
-        
+
         // Destroy existing ads
         DestroyBanner();
-        
+
         if (interstitialAd != null)
         {
             interstitialAd.Destroy();
             interstitialAd = null;
         }
-        
+
         if (rewardedAd != null)
         {
             rewardedAd.Destroy();
             rewardedAd = null;
         }
-        
+
         if (rewardedInterstitialAd != null)
         {
             rewardedInterstitialAd.Destroy();
             rewardedInterstitialAd = null;
         }
-        
+
         if (appOpenAd != null)
         {
             appOpenAd.Destroy();
@@ -680,7 +682,7 @@ public class AdsManager : MonoBehaviour
         }
     }
 
-   private void LoadAndShowConsentForm()
+    private void LoadAndShowConsentForm()
     {
         ConsentForm.Load((consentForm, loadError) =>
         {
@@ -718,11 +720,11 @@ public class AdsManager : MonoBehaviour
     private void SetMediationConsent()
     {
         bool hasConsent = ConsentInformation.ConsentStatus == ConsentStatus.Obtained;
-        
+
         // Unity Ads mediation consent
         UnityAds.SetConsentMetaData("gdpr.consent", hasConsent);
         UnityAds.SetConsentMetaData("privacy.consent", hasConsent);
-        
+
         // Additional mediation networks can be added here
         Debug.Log($"Mediation consent set: {hasConsent}");
     }
@@ -734,7 +736,7 @@ public class AdsManager : MonoBehaviour
         {
             TestDeviceIds = enableTestAds ? new System.Collections.Generic.List<string> { "YOUR_TEST_DEVICE_ID" } : null
         };
-        
+
         MobileAds.SetRequestConfiguration(requestConfiguration);
 
         MobileAds.Initialize((InitializationStatus initStatus) =>
@@ -742,13 +744,13 @@ public class AdsManager : MonoBehaviour
             isInitialized = true;
             isColdStart = false; // Initialization complete, no longer cold start
             Debug.Log("AdMob initialized successfully");
-            
+
             // Log mediation adapter statuses
             foreach (var adapterStatus in initStatus.getAdapterStatusMap())
             {
                 Debug.Log($"Adapter: {adapterStatus.Key}, Status: {adapterStatus.Value.InitializationState}, Description: {adapterStatus.Value.Description}");
             }
-            
+
             LoadAllAds();
         });
     }
@@ -758,13 +760,14 @@ public class AdsManager : MonoBehaviour
         // Always load rewarded ads
         LoadRewardedAd();
         LoadRewardedInterstitialAd();
-        
+
         // Only load non-rewarded ads if removeAds is false
         if (!removeAds)
         {
             LoadInterstitialAd();
             LoadAppOpenAd();
             LoadBanner();
+            // Don't automatically show banner - let VerifyAdmob control initial visibility
         }
     }
 
@@ -772,7 +775,7 @@ public class AdsManager : MonoBehaviour
     private void OnAppStateChanged(AppState appState)
     {
         Debug.Log($"App state changed to: {appState}");
-        
+
         if (appState == AppState.Foreground && autoShowAppOpenAds)
         {
             // Don't show on cold start or if an ad is already showing
@@ -791,7 +794,8 @@ public class AdsManager : MonoBehaviour
     {
         if (IsAppOpenAdAvailable())
         {
-            ShowAppOpenAd(() => {
+            ShowAppOpenAd(() =>
+            {
                 hasShownFirstAppOpenAd = true;
                 lastAppOpenShownTime = DateTime.Now;
             });
@@ -801,7 +805,7 @@ public class AdsManager : MonoBehaviour
     #region Banner Ads
     public void LoadBanner()
     {
-        if (!isInitialized) 
+        if (!isInitialized)
         {
             Debug.LogWarning("AdMob not initialized yet");
             return;
@@ -813,25 +817,26 @@ public class AdsManager : MonoBehaviour
             return;
         }
 
+        // Don't automatically set visibility - let external code control it
         DestroyBanner();
 
         AdSize adSize = GetAdSize();
         bannerView = new BannerView(BANNER_ID, adSize, currentBannerPosition);
-        
+
         // Register banner events
         RegisterBannerEvents();
-        
+
         // Load the banner
         var adRequest = CreateAdRequest();
-        
+
         // Add collapsible banner custom targeting if enabled
         if (enableCollapsibleBanners)
         {
             adRequest.Extras.Add("collapsible", "bottom"); // or "top"
         }
-        
+
         bannerView.LoadAd(adRequest);
-        
+
         Debug.Log($"Loading {(useAdaptiveBanners ? "adaptive" : "standard")} banner ad...");
     }
 
@@ -841,7 +846,7 @@ public class AdsManager : MonoBehaviour
         {
             return GetAdaptiveAdSize();
         }
-        
+
         return GetStandardAdSize();
     }
 
@@ -884,10 +889,18 @@ public class AdsManager : MonoBehaviour
         if (bannerView == null) return;
 
         // Banner loaded successfully
-        bannerView.OnBannerAdLoaded += () => {
+        bannerView.OnBannerAdLoaded += () =>
+        {
             isBannerLoaded = true;
             Debug.Log("Banner ad loaded successfully");
-            
+
+            // Mark first-time loading as complete
+            if (isFirstTimeLoading)
+            {
+                isFirstTimeLoading = false;
+                Debug.Log("First-time ad loading completed");
+            }
+
             // Auto-show banner if it was meant to be visible
             if (isBannerVisible)
             {
@@ -896,40 +909,46 @@ public class AdsManager : MonoBehaviour
         };
 
         // Banner failed to load
-        bannerView.OnBannerAdLoadFailed += (LoadAdError error) => {
+        bannerView.OnBannerAdLoadFailed += (LoadAdError error) =>
+        {
             isBannerLoaded = false;
             Debug.LogError($"Banner ad failed to load: {error.GetMessage()}\nError Code: {error.GetCode()}\nCause: {error.GetCause()}");
-            
+
             // Retry loading after a delay
             RetryLoadBanner();
         };
 
         // Banner revenue tracking
-        bannerView.OnAdPaid += (AdValue adValue) => {
+        bannerView.OnAdPaid += (AdValue adValue) =>
+        {
             Debug.Log($"Banner ad paid: {adValue.Value} {adValue.CurrencyCode}");
             // Here you can send revenue data to analytics services
             TrackAdRevenue("banner", adValue);
         };
 
         // Banner impression recorded
-        bannerView.OnAdImpressionRecorded += () => {
+        bannerView.OnAdImpressionRecorded += () =>
+        {
             Debug.Log("Banner ad impression recorded");
         };
 
         // Banner clicked
-        bannerView.OnAdClicked += () => {
+        bannerView.OnAdClicked += () =>
+        {
             Debug.Log("Banner ad was clicked");
         };
 
         // Banner opened full screen content
-        bannerView.OnAdFullScreenContentOpened += () => {
+        bannerView.OnAdFullScreenContentOpened += () =>
+        {
             Debug.Log("Banner ad opened full screen content");
             // Pause game logic if needed
             OnBannerFullScreenOpened();
         };
 
         // Banner closed full screen content
-        bannerView.OnAdFullScreenContentClosed += () => {
+        bannerView.OnAdFullScreenContentClosed += () =>
+        {
             Debug.Log("Banner ad closed full screen content");
             // Resume game logic if needed
             OnBannerFullScreenClosed();
@@ -969,7 +988,7 @@ public class AdsManager : MonoBehaviour
         }
 
         isBannerVisible = show;
-        
+
         if (bannerView != null && isBannerLoaded)
         {
             if (show)
@@ -990,6 +1009,22 @@ public class AdsManager : MonoBehaviour
         }
     }
 
+    public void SetInitialBannerVisibility(bool show)
+    {
+        // This method is called by VerifyAdmob to set initial banner visibility
+        // after first-time loading is complete
+        if (isBannerLoaded)
+        {
+            ShowBanner(show);
+        }
+        else
+        {
+            // If banner is not loaded yet, set the intended visibility
+            // and it will be applied when the banner loads
+            isBannerVisible = show;
+        }
+    }
+
     public void SetBannerPosition(BannerPosition position)
     {
         AdPosition newPosition = ConvertToAdPosition(position);
@@ -997,14 +1032,14 @@ public class AdsManager : MonoBehaviour
         {
             currentBannerPosition = newPosition;
             Debug.Log($"Banner position changed to: {position}");
-            
+
             // Reload banner with new position if it exists
             if (bannerView != null)
             {
                 bool wasVisible = isBannerVisible;
                 DestroyBanner();
                 LoadBanner();
-                
+
                 // Restore visibility state
                 if (wasVisible)
                 {
@@ -1020,14 +1055,14 @@ public class AdsManager : MonoBehaviour
         {
             preferredBannerSize = size;
             Debug.Log($"Banner size changed to: {size}");
-            
+
             // Reload banner with new size if it exists
             if (bannerView != null)
             {
                 bool wasVisible = isBannerVisible;
                 DestroyBanner();
                 LoadBanner();
-                
+
                 // Restore visibility state
                 if (wasVisible)
                 {
@@ -1043,14 +1078,14 @@ public class AdsManager : MonoBehaviour
         {
             useAdaptiveBanners = enable;
             Debug.Log($"Adaptive banners {(enable ? "enabled" : "disabled")}");
-            
+
             // Reload banner with new setting
             if (bannerView != null)
             {
                 bool wasVisible = isBannerVisible;
                 DestroyBanner();
                 LoadBanner();
-                
+
                 // Restore visibility state
                 if (wasVisible)
                 {
@@ -1100,7 +1135,7 @@ public class AdsManager : MonoBehaviour
         // Implement your analytics tracking here
         // Example: Firebase Analytics, Unity Analytics, etc.
         Debug.Log($"Ad Revenue - Format: {adFormat}, Value: {adValue.Value}, Currency: {adValue.CurrencyCode}");
-        
+
         // Example implementation for different analytics services:
         /*
         // Firebase Analytics
@@ -1197,20 +1232,22 @@ public class AdsManager : MonoBehaviour
         if (interstitialAd != null && interstitialAd.CanShowAd())
         {
             isShowingAd = true;
-            
+
             // Subscribe to events with cleanup
-            System.Action onClosed = () => {
+            System.Action onClosed = () =>
+            {
                 isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) => {
+            System.Action<AdError> onFailed = (error) =>
+            {
                 isShowingAd = false;
                 onFailure?.Invoke();
             };
-            
+
             interstitialAd.OnAdFullScreenContentClosed += onClosed;
             interstitialAd.OnAdFullScreenContentFailed += onFailed;
-            
+
             interstitialAd.Show();
         }
         else
@@ -1284,20 +1321,23 @@ public class AdsManager : MonoBehaviour
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
             isShowingAd = true;
-            
-            System.Action onClosed = () => {
+
+            System.Action onClosed = () =>
+            {
                 isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) => {
+            System.Action<AdError> onFailed = (error) =>
+            {
                 isShowingAd = false;
                 onFailure?.Invoke();
             };
-            
+
             rewardedAd.OnAdFullScreenContentClosed += onClosed;
             rewardedAd.OnAdFullScreenContentFailed += onFailed;
-            
-            rewardedAd.Show((reward) => {
+
+            rewardedAd.Show((reward) =>
+            {
                 Debug.Log($"Rewarded ad granted reward: {reward.Amount} {reward.Type}");
                 onRewarded?.Invoke(reward);
             });
@@ -1379,20 +1419,23 @@ public class AdsManager : MonoBehaviour
         if (rewardedInterstitialAd != null && rewardedInterstitialAd.CanShowAd())
         {
             isShowingAd = true;
-            
-            System.Action onClosed = () => {
+
+            System.Action onClosed = () =>
+            {
                 isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) => {
+            System.Action<AdError> onFailed = (error) =>
+            {
                 isShowingAd = false;
                 onFailure?.Invoke();
             };
-            
+
             rewardedInterstitialAd.OnAdFullScreenContentClosed += onClosed;
             rewardedInterstitialAd.OnAdFullScreenContentFailed += onFailed;
-            
-            rewardedInterstitialAd.Show((reward) => {
+
+            rewardedInterstitialAd.Show((reward) =>
+            {
                 Debug.Log($"Rewarded interstitial ad granted reward: {reward.Amount} {reward.Type}");
                 onRewarded?.Invoke(reward);
             });
@@ -1489,21 +1532,23 @@ public class AdsManager : MonoBehaviour
         {
             isShowingAd = true;
             isAppOpenAdShowing = true;
-            
-            System.Action onClosed = () => {
+
+            System.Action onClosed = () =>
+            {
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) => {
+            System.Action<AdError> onFailed = (error) =>
+            {
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
                 onFailure?.Invoke();
             };
-            
+
             appOpenAd.OnAdFullScreenContentClosed += onClosed;
             appOpenAd.OnAdFullScreenContentFailed += onFailed;
-            
+
             appOpenAd.Show();
         }
         else
@@ -1528,10 +1573,10 @@ public class AdsManager : MonoBehaviour
     private AdRequest CreateAdRequest()
     {
         var adRequest = new AdRequest();
-        
+
         // Add any additional request parameters here
         // For example: keywords, content URL, etc.
-        
+
         return adRequest;
     }
     #endregion

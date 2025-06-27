@@ -1,20 +1,21 @@
 using UnityEngine;
+using System.Collections;
 
 public class VerifyAdmob : MonoBehaviour
 {
     [Header("Ad Display Settings")]
     [SerializeField] private BannerPosition bannerPosition = BannerPosition.Bottom;
     [SerializeField] private bool showBannerOnStart = true;
-    
+
     [Header("Remove Ads")]
     [SerializeField] private bool removeAds = false;
     [SerializeField] private bool showPersistenceDebugLogs = true;
-    
+
     [Header("Ad Configuration")]
     [SerializeField] private bool autoShowAppOpenAds = true;
     [SerializeField] private bool enableTestAds = true;
     [SerializeField] private float appOpenCooldownTime = 4f;
-    
+
     [Header("Banner Configuration")]
     [SerializeField] private bool useAdaptiveBanners = true;
     [SerializeField] private bool enableCollapsibleBanners = false;
@@ -26,7 +27,7 @@ public class VerifyAdmob : MonoBehaviour
     [SerializeField] private string androidRewardedId = "ca-app-pub-3940256099942544/5224354917";
     [SerializeField] private string androidRewardedInterstitialId = "ca-app-pub-3940256099942544/5354046379";
     [SerializeField] private string androidAppOpenId = "ca-app-pub-3940256099942544/9257395921";
-    
+
     [Header("Ad Unit IDs - iOS")]
     [SerializeField] private string iosBannerId = "ca-app-pub-3940256099942544/2934735716";
     [SerializeField] private string iosInterstitialId = "ca-app-pub-3940256099942544/4411468910";
@@ -36,42 +37,57 @@ public class VerifyAdmob : MonoBehaviour
 
     void Start()
     {
-        // Subscribe to Remove Ads events
         AdsManager.OnRemoveAdsChanged += OnRemoveAdsStatusChanged;
         AdsManager.OnRemoveAdsLoadedFromStorage += OnRemoveAdsLoadedFromStorage;
-        
-        // Initialize and verify AdsManager
+
         AdsManager.Instance.VerifyHit();
-        
-        // Apply all configuration values to AdsManager
+
         ApplyAllSettings();
-        
-        // Set banner position and show if needed
+
         AdsManager.Instance.SetBannerPosition(bannerPosition);
+
+        StartCoroutine(HandleInitialBannerVisibility());
+    }
+
+    private IEnumerator HandleInitialBannerVisibility()
+    {
+        while (!AdsManager.Instance.IsInitialized)
+        {
+            yield return null;
+        }
+
+        while (AdsManager.Instance.IsFirstTimeLoading)
+        {
+            yield return null;
+        }
+
         if (showBannerOnStart && !removeAds)
         {
-            AdsManager.Instance.ShowBanner(true);
+            Debug.Log("[VerifyAdmob] First-time loading complete - showing banner as configured");
+            AdsManager.Instance.SetInitialBannerVisibility(true);
+        }
+        else
+        {
+            Debug.Log("[VerifyAdmob] First-time loading complete - hiding banner as configured");
+            AdsManager.Instance.SetInitialBannerVisibility(false);
         }
     }
 
     private void OnDestroy()
     {
-        // Unsubscribe from events
         AdsManager.OnRemoveAdsChanged -= OnRemoveAdsStatusChanged;
         AdsManager.OnRemoveAdsLoadedFromStorage -= OnRemoveAdsLoadedFromStorage;
     }
 
     private void OnRemoveAdsStatusChanged(bool newStatus)
     {
-        // Update local value to match AdsManager
         removeAds = newStatus;
-        
+
         if (showPersistenceDebugLogs)
         {
             Debug.Log($"[VerifyAdmob] Remove Ads status changed: {newStatus}");
         }
-        
-        // Handle banner visibility based on new status
+
         if (newStatus)
         {
             AdsManager.Instance.ShowBanner(false);
@@ -84,9 +100,8 @@ public class VerifyAdmob : MonoBehaviour
 
     private void OnRemoveAdsLoadedFromStorage(bool loadedStatus)
     {
-        // Update local value to match loaded status
         removeAds = loadedStatus;
-        
+
         if (showPersistenceDebugLogs)
         {
             Debug.Log($"[VerifyAdmob] Remove Ads status loaded from storage: {loadedStatus}");
@@ -95,34 +110,29 @@ public class VerifyAdmob : MonoBehaviour
 
     private void ApplyAllSettings()
     {
-        // Apply Ad Unit IDs first (before initialization)
         ApplyAdUnitIds();
-        
-        // Apply Remove Ads setting (this affects other loading)
+
         AdsManager.Instance.RemoveAds = removeAds;
-        
-        // Apply general ad settings
+
         AdsManager.Instance.AutoShowAppOpenAds = autoShowAppOpenAds;
         AdsManager.Instance.EnableTestAds = enableTestAds;
         AdsManager.Instance.AppOpenCooldownTime = appOpenCooldownTime;
-        
-        // Apply banner settings
+
         AdsManager.Instance.UseAdaptiveBanners = useAdaptiveBanners;
         AdsManager.Instance.EnableCollapsibleBanners = enableCollapsibleBanners;
         AdsManager.Instance.PreferredBannerSize = preferredBannerSize;
-        
+
         Debug.Log($"All ad settings applied. Remove Ads: {removeAds}");
         LogCurrentAdStatus();
     }
 
     private void ApplyAdUnitIds()
     {
-        // Apply all Ad Unit IDs to AdsManager
         AdsManager.Instance.SetAllAdIds(
             androidBannerId, androidInterstitialId, androidRewardedId, androidRewardedInterstitialId, androidAppOpenId,
             iosBannerId, iosInterstitialId, iosRewardedId, iosRewardedInterstitialId, iosAppOpenId
         );
-        
+
         if (showPersistenceDebugLogs)
         {
             Debug.Log("[VerifyAdmob] Ad Unit IDs applied to AdsManager");
@@ -134,15 +144,13 @@ public class VerifyAdmob : MonoBehaviour
     {
         removeAds = remove;
         AdsManager.Instance.RemoveAds = remove;
-        
+
         if (remove)
         {
-            // Hide banner if removing ads
             AdsManager.Instance.ShowBanner(false);
         }
         else if (showBannerOnStart)
         {
-            // Show banner if enabling ads and it should be shown
             AdsManager.Instance.ShowBanner(true);
         }
     }
@@ -275,7 +283,7 @@ public class VerifyAdmob : MonoBehaviour
             Debug.Log("Cannot show banner - Remove Ads is enabled");
             return;
         }
-        
+
         bool isVisible = AdsManager.Instance.IsBannerVisible();
         AdsManager.Instance.ShowBanner(!isVisible);
     }
@@ -317,7 +325,7 @@ public class VerifyAdmob : MonoBehaviour
         // This method would typically be called after a successful IAP purchase
         Debug.Log("Remove Ads purchased! Enabling...");
         SetRemoveAds(true);
-        
+
         if (showPersistenceDebugLogs)
         {
             Debug.Log("Remove Ads status has been saved to persistent storage");
@@ -339,7 +347,7 @@ public class VerifyAdmob : MonoBehaviour
         androidRewardedId = rewardedId;
         androidRewardedInterstitialId = rewardedInterstitialId;
         androidAppOpenId = appOpenId;
-        
+
         AdsManager.Instance.SetAndroidAdIds(bannerId, interstitialId, rewardedId, rewardedInterstitialId, appOpenId);
         Debug.Log("[VerifyAdmob] Android Ad Unit IDs updated");
     }
@@ -351,7 +359,7 @@ public class VerifyAdmob : MonoBehaviour
         iosRewardedId = rewardedId;
         iosRewardedInterstitialId = rewardedInterstitialId;
         iosAppOpenId = appOpenId;
-        
+
         AdsManager.Instance.SetIosAdIds(bannerId, interstitialId, rewardedId, rewardedInterstitialId, appOpenId);
         Debug.Log("[VerifyAdmob] iOS Ad Unit IDs updated");
     }
@@ -373,7 +381,7 @@ public class VerifyAdmob : MonoBehaviour
     {
         bool isTest = AdsManager.Instance.AreTestAdIds();
         Debug.Log($"Using Test Ad IDs: {isTest}");
-        
+
         if (isTest)
         {
             Debug.LogWarning("⚠️ WARNING: You are using Google's test Ad Unit IDs. Make sure to replace these with your real Ad Unit IDs before publishing!");
@@ -389,7 +397,7 @@ public class VerifyAdmob : MonoBehaviour
     {
         bool valid = AdsManager.Instance.AreAdIdsValid();
         Debug.Log($"Ad Unit IDs Valid: {valid}");
-        
+
         if (!valid)
         {
             Debug.LogError("❌ Some Ad Unit IDs are empty or invalid!");
@@ -425,7 +433,7 @@ public class VerifyAdmob : MonoBehaviour
     public string GetAndroidRewardedId() => androidRewardedId;
     public string GetAndroidRewardedInterstitialId() => androidRewardedInterstitialId;
     public string GetAndroidAppOpenId() => androidAppOpenId;
-    
+
     public string GetIosBannerId() => iosBannerId;
     public string GetIosInterstitialId() => iosInterstitialId;
     public string GetIosRewardedId() => iosRewardedId;
@@ -438,7 +446,7 @@ public class VerifyAdmob : MonoBehaviour
         // Ensure cooldown time is reasonable
         if (appOpenCooldownTime < 0)
             appOpenCooldownTime = 0;
-        
+
         // Apply settings if AdsManager instance exists and we're in play mode
         if (Application.isPlaying && AdsManager.Instance != null)
         {
