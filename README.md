@@ -21,17 +21,6 @@ A powerful and production-ready AdMob integration package with Unity Ads mediati
 - 🔧 **Enhanced Banner Management** - Improved coordination between AdsManager and VerifyAdmob
 - 🎮 **Better User Experience** - Professional logging output and streamlined initialization
 
-### 🚀 What's New in v2.0.1:
-- 🚫 **Complete Remove Ads System** - Disable non-rewarded ads while keeping rewarded ads active
-- 💾 **Persistence & Storage** - Local storage with optional encryption and cloud sync integration
-- ⚙️ **Full Configuration Exposure** - All settings accessible via Inspector without code changes
-- 🆔 **Dynamic Ad Unit ID Management** - Runtime configurable Ad Unit IDs for Android/iOS
-- 🧪 **Comprehensive Testing Suite** - Complete testing tools for all ad types and Remove Ads workflow
-- 🛠️ **Developer Tools** - Status checking, ID validation, and debugging utilities
-- 📱 **Enhanced Banner Management** - Position cycling, size testing, and visibility controls
-- 🔗 **Event System** - Real-time notifications for Remove Ads status changes
-- 🔒 **Production Security** - Encrypted storage and validation systems
-
 ## ✨ Core Features
 
 ### 🎯 Ad Management
