@@ -4,6 +4,8 @@ using GoogleMobileAds.Api;
 using GoogleMobileAds.Ump.Api;
 using GoogleMobileAds.Mediation.UnityAds.Api;
 using GoogleMobileAds.Common;
+using System.Collections.Generic;
+using System.Collections;
 
 public enum BannerPosition
 {
@@ -95,6 +97,19 @@ public class AdsManager : MonoBehaviour
     [SerializeField] private bool enableCollapsibleBanners = false;
     [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
 
+    [Header("Consent Configuration")]
+    [Space(5)]
+    [Tooltip("TESTING ONLY: Force EEA geography for consent testing. Must be FALSE for production.")]
+    [SerializeField] private bool forceEEAGeographyForTesting = false;
+
+    [Space(5)]
+    [Tooltip("TESTING ONLY: Enable debugging and error bypasses. Must be FALSE for production.")]
+    [SerializeField] private bool enableConsentDebugging = false;
+
+    [Space(5)]
+    [Tooltip("PRODUCTION: Always request consent update (Google's recommendation). Should be TRUE.")]
+    [SerializeField] private bool alwaysRequestConsentUpdate = true;
+
     private BannerView bannerView;
     private InterstitialAd interstitialAd;
     private RewardedAd rewardedAd;
@@ -174,6 +189,25 @@ public class AdsManager : MonoBehaviour
     {
         get => preferredBannerSize;
         set => preferredBannerSize = value;
+    }
+
+    // Consent Configuration Properties
+    public bool ForceEEAGeographyForTesting
+    {
+        get => forceEEAGeographyForTesting;
+        set => forceEEAGeographyForTesting = value;
+    }
+
+    public bool EnableConsentDebugging
+    {
+        get => enableConsentDebugging;
+        set => enableConsentDebugging = value;
+    }
+
+    public bool AlwaysRequestConsentUpdate
+    {
+        get => alwaysRequestConsentUpdate;
+        set => alwaysRequestConsentUpdate = value;
     }
 
     // Current ad availability properties
@@ -622,153 +656,559 @@ public class AdsManager : MonoBehaviour
 
     private void Awake()
     {
+        Debug.Log("[AdsManager] Awake() called");
+
         if (instance == null)
         {
+            Debug.Log("[AdsManager] Creating singleton instance");
             instance = this;
             DontDestroyOnLoad(gameObject);
             LoadRemoveAdsStatus(); // Load saved Remove Ads status first
+            Debug.Log($"[AdsManager] Remove Ads Status: {removeAds}");
             InitializeAds();
         }
         else
         {
+            Debug.Log("[AdsManager] Duplicate instance detected - destroying");
             Destroy(gameObject);
         }
     }
 
     private void Start()
     {
+        Debug.Log("[AdsManager] Start() called");
         // Initialize app state notifier for app open ads
         AppStateEventNotifier.AppStateChanged += OnAppStateChanged;
+        Debug.Log("[AdsManager] App state notifier registered");
     }
 
     private void InitializeAds()
     {
+        Debug.Log("[AdsManager] InitializeAds() started");
+
+        MobileAds.RaiseAdEventsOnUnityMainThread = true;
+        Debug.Log("[AdsManager] Set RaiseAdEventsOnUnityMainThread = true");
+
+        // Add this for testing - reset consent to simulate fresh install
+        if (enableTestAds)
+        {
+            Debug.Log("[AdsManager] Resetting consent for testing");
+            ConsentInformation.Reset();
+        }
+
+        // Log current ad IDs for debugging
+        Debug.Log($"[AdsManager] Using Banner ID: {CurrentBannerId}");
+        Debug.Log($"[AdsManager] Using Interstitial ID: {CurrentInterstitialId}");
+        Debug.Log($"[AdsManager] Using Rewarded ID: {CurrentRewardedId}");
+        Debug.Log($"[AdsManager] Using Rewarded Interstitial ID: {CurrentRewardedInterstitialId}");
+        Debug.Log($"[AdsManager] Using App Open ID: {CurrentAppOpenId}");
+        Debug.Log($"[AdsManager] Test Ads Enabled: {enableTestAds}");
+        Debug.Log($"[AdsManager] Are Test Ad IDs: {AreTestAdIds()}");
+
+        // Then continue with consent
         RequestConsentInfo();
     }
 
     private void RequestConsentInfo()
     {
-        var debugSettings = new ConsentDebugSettings
+        Debug.Log("[AdsManager] RequestConsentInfo() started");
+        
+        // Production-first approach: Google recommends ALWAYS calling Update()
+        if (!alwaysRequestConsentUpdate)
         {
-            DebugGeography = enableTestAds ? DebugGeography.EEA : DebugGeography.Disabled
-        };
-
-        ConsentRequestParameters request = new ConsentRequestParameters
-        {
-            TagForUnderAgeOfConsent = false,
-            ConsentDebugSettings = debugSettings
-        };
-
-        ConsentInformation.Update(request, OnConsentInfoUpdated);
-    }
-
-    private void OnConsentInfoUpdated(FormError error)
-    {
-        if (error != null)
-        {
-            Debug.LogError($"Consent Error: {error}");
-            // Initialize anyway if consent fails
+            Debug.LogWarning("[AdsManager] Consent update disabled - this is NOT recommended by Google");
+            Debug.LogWarning("[AdsManager] Skipping consent and initializing directly");
             InitializeAdMob();
             return;
         }
+        
+        ConsentRequestParameters request = CreateConsentRequestParameters();
+        
+        Debug.Log("[AdsManager] Calling ConsentInformation.Update() - Google's required step");
+        ConsentInformation.Update(request, OnConsentInfoUpdated);
+        
+        // Google's recommendation: Check CanRequestAds immediately after Update()
+        StartCoroutine(CheckConsentAfterUpdate());
+    }
 
-        if (ConsentInformation.IsConsentFormAvailable())
+    /// <summary>
+    /// Creates consent request parameters with production defaults and optional testing overrides
+    /// </summary>
+    private ConsentRequestParameters CreateConsentRequestParameters()
+    {
+        // Production default: No debug settings (uses real device geography)
+        ConsentRequestParameters request = new ConsentRequestParameters
         {
-            LoadAndShowConsentForm();
+            TagForUnderAgeOfConsent = false
+        };
+        
+        // Apply testing overrides only if debugging is enabled
+        if (enableConsentDebugging)
+        {
+            Debug.Log("[AdsManager] CONSENT DEBUGGING ENABLED - Using test configuration");
+            Debug.LogWarning("[AdsManager] This should be DISABLED in production builds");
+            
+            var debugSettings = new ConsentDebugSettings();
+            
+            // Geography override for testing consent forms
+            if (forceEEAGeographyForTesting)
+            {
+                debugSettings.DebugGeography = DebugGeography.EEA;
+                Debug.Log("[AdsManager] Forcing EEA geography for consent testing");
+            }
+            else
+            {
+                debugSettings.DebugGeography = DebugGeography.Other;
+                Debug.Log("[AdsManager] Using Other geography for testing");
+            }
+            
+            // Let AdMob auto-detect test devices (no manual device ID needed)
+            debugSettings.TestDeviceHashedIds = new List<string>();
+            Debug.Log("[AdsManager] Test device will be auto-detected by AdMob SDK");
+            
+            request.ConsentDebugSettings = debugSettings;
         }
         else
         {
+            Debug.Log("[AdsManager] Using production consent configuration");
+            Debug.Log("[AdsManager] Real device geography and behavior will be used");
+        }
+        
+        return request;
+    }
+
+    /// <summary>
+    /// Google's recommended approach: Check consent status immediately after Update()
+    /// This handles cases where consent was obtained in previous sessions
+    /// </summary>
+    private IEnumerator CheckConsentAfterUpdate()
+    {
+        // Wait one frame for Update() to complete its internal processing
+        yield return null;
+        
+        Debug.Log("[AdsManager] === CONSENT STATUS CHECK ===");
+        LogDetailedConsentStatus();
+        
+        // STEP 1: Google's primary recommendation - check CanRequestAds first
+        if (ConsentInformation.CanRequestAds())
+        {
+            if (!isInitialized)
+            {
+                Debug.Log("[AdsManager] CanRequestAds is TRUE - Initializing AdMob immediately");
+                Debug.Log("[AdsManager] This means user has given consent or consent is not required");
+                InitializeAdMob();
+            }
+            else
+            {
+                Debug.Log("[AdsManager] CanRequestAds is TRUE but AdMob already initialized");
+            }
+            yield break; // Exit early - we can proceed
+        }
+        
+        // STEP 2: CanRequestAds is false - analyze why and handle appropriately
+        Debug.Log("[AdsManager] CanRequestAds is FALSE - Analyzing consent status...");
+        
+        ConsentStatus status = ConsentInformation.ConsentStatus;
+        bool formAvailable = ConsentInformation.IsConsentFormAvailable();
+        
+        switch (status)
+        {
+            case ConsentStatus.Required:
+                HandleConsentRequired(formAvailable);
+                break;
+                
+            case ConsentStatus.NotRequired:
+                HandleConsentNotRequired();
+                break;
+                
+            case ConsentStatus.Obtained:
+                HandleConsentObtained();
+                break;
+                
+            case ConsentStatus.Unknown:
+            default:
+                HandleConsentUnknown();
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Logs detailed consent status for debugging and production monitoring
+    /// </summary>
+    private void LogDetailedConsentStatus()
+    {
+        Debug.Log($"[AdsManager] CanRequestAds: {ConsentInformation.CanRequestAds()}");
+        Debug.Log($"[AdsManager] ConsentStatus: {ConsentInformation.ConsentStatus}");
+        Debug.Log($"[AdsManager] IsConsentFormAvailable: {ConsentInformation.IsConsentFormAvailable()}");
+        Debug.Log($"[AdsManager] PrivacyOptionsRequirementStatus: {ConsentInformation.PrivacyOptionsRequirementStatus}");
+        Debug.Log($"[AdsManager] AdMob Initialized: {isInitialized}");
+        Debug.Log($"[AdsManager] Debugging Enabled: {enableConsentDebugging}");
+        Debug.Log($"[AdsManager] Force EEA Testing: {forceEEAGeographyForTesting}");
+    }
+
+    /// <summary>
+    /// Handles ConsentStatus.Required scenario (typically EEA users)
+    /// </summary>
+    private void HandleConsentRequired(bool formAvailable)
+    {
+        Debug.Log("[AdsManager] Consent Status: REQUIRED");
+        
+        if (formAvailable)
+        {
+            Debug.Log("[AdsManager] Consent form is available");
+            Debug.Log("[AdsManager] Waiting for OnConsentInfoUpdated callback to show consent form");
+            Debug.Log("[AdsManager] User will be prompted with consent options");
+            // The callback OnConsentInfoUpdated() will handle showing the form
+        }
+        else
+        {
+            Debug.LogWarning("[AdsManager] Consent required but NO FORM AVAILABLE");
+            Debug.LogWarning("[AdsManager] This indicates missing privacy message configuration in AdMob Console");
+            Debug.LogWarning("[AdsManager] Go to AdMob Console > Privacy & messaging > Create message");
+            
+            HandleMissingConsentForm();
+        }
+    }
+
+    /// <summary>
+    /// Handles ConsentStatus.NotRequired scenario (typically non-EEA users)
+    /// </summary>
+    private void HandleConsentNotRequired()
+    {
+        Debug.Log("[AdsManager] Consent Status: NOT REQUIRED");
+        Debug.Log("[AdsManager] User is not in a region requiring consent (non-EEA)");
+        
+        if (!isInitialized)
+        {
+            Debug.Log("[AdsManager] Proceeding with AdMob initialization");
             InitializeAdMob();
         }
     }
 
-    private void LoadAndShowConsentForm()
+    /// <summary>
+    /// Handles ConsentStatus.Obtained scenario (user previously gave consent)
+    /// </summary>
+    private void HandleConsentObtained()
     {
-        ConsentForm.Load((consentForm, loadError) =>
+        Debug.Log("[AdsManager] Consent Status: OBTAINED");
+        Debug.Log("[AdsManager] User previously provided consent");
+        
+        if (!isInitialized)
         {
-            if (loadError != null)
+            Debug.Log("[AdsManager] Proceeding with AdMob initialization");
+            InitializeAdMob();
+        }
+    }
+
+    /// <summary>
+    /// Handles ConsentStatus.Unknown scenario (edge cases, network issues, etc.)
+    /// </summary>
+    private void HandleConsentUnknown()
+    {
+        Debug.Log("[AdsManager] Consent Status: UNKNOWN");
+        Debug.Log("[AdsManager] This can happen due to network issues or first-time initialization");
+        
+        if (enableConsentDebugging)
+        {
+            Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing unknown status for testing");
+            Debug.Log("[AdsManager] In production, this would wait for network recovery or callback");
+            
+            if (!isInitialized)
             {
-                Debug.LogError($"Consent form error: {loadError}");
-                // Initialize anyway if consent form fails to load
                 InitializeAdMob();
-                return;
             }
+        }
+        else
+        {
+            Debug.Log("[AdsManager] PRODUCTION MODE: Waiting for consent resolution");
+            Debug.Log("[AdsManager] Options: 1) Callback will resolve, 2) Network will recover, 3) Timeout will trigger");
+            
+            // Start timeout fallback for production reliability
+            StartCoroutine(ProductionConsentTimeout());
+        }
+    }
 
-            if (ConsentInformation.ConsentStatus == ConsentStatus.Required)
+    /// <summary>
+    /// Handles missing consent form configuration (production issue detection)
+    /// </summary>
+    private void HandleMissingConsentForm()
+    {
+        if (enableConsentDebugging)
+        {
+            Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing missing form for testing");
+            Debug.Log("[AdsManager] In production, you MUST configure privacy messages in AdMob Console");
+            
+            if (!isInitialized)
             {
-                consentForm.Show((showError) =>
-                {
-                    if (showError != null)
-                    {
-                        Debug.LogError($"Error showing consent form: {showError}");
-                    }
+                InitializeAdMob();
+            }
+        }
+        else
+        {
+            Debug.LogError("[AdsManager] PRODUCTION ERROR: Missing consent form configuration");
+            Debug.LogError("[AdsManager] REQUIRED ACTION: Configure privacy message in AdMob Console");
+            Debug.LogError("[AdsManager] Cannot proceed with ad initialization in compliant manner");
+            
+            // In production, you might want to:
+            // 1. Show user a message about ads being unavailable
+            // 2. Proceed without ads
+            // 3. Initialize with limited functionality
+            // For now, we'll wait for manual intervention or timeout
+        }
+    }
 
-                    // Set Unity Ads consent after user's choice
-                    SetMediationConsent();
-                    InitializeAdMob();
-                });
+    /// <summary>
+    /// Production timeout fallback to prevent indefinite waiting
+    /// </summary>
+    private IEnumerator ProductionConsentTimeout()
+    {
+        float timeoutSeconds = 15f;
+        Debug.Log($"[AdsManager] Starting production consent timeout ({timeoutSeconds}s)");
+        
+        yield return new WaitForSeconds(timeoutSeconds);
+        
+        if (!isInitialized)
+        {
+            Debug.LogWarning("[AdsManager] Consent timeout reached in production");
+            Debug.LogWarning("[AdsManager] This may indicate network issues or SDK problems");
+            
+            // Decision point: Initialize anyway or remain in non-ads state?
+            // This depends on your app's requirements
+            
+            if (ConsentInformation.CanRequestAds())
+            {
+                Debug.Log("[AdsManager] CanRequestAds became true during timeout - initializing");
+                InitializeAdMob();
             }
             else
             {
-                // Set consent metadata for existing consent
-                SetMediationConsent();
+                Debug.LogWarning("[AdsManager] Still cannot request ads - continuing without ads");
+                // Optionally notify other systems that ads are unavailable
+            }
+        }
+    }
+
+    /// <summary>
+    /// Callback executed when ConsentInformation.Update() completes
+    /// This handles consent form presentation and user interaction
+    /// </summary>
+    private void OnConsentInfoUpdated(FormError error)
+    {
+        // Prevent double initialization race conditions
+        if (isInitialized)
+        {
+            Debug.Log("[AdsManager] OnConsentInfoUpdated called but AdMob already initialized");
+            return;
+        }
+        
+        Debug.Log("[AdsManager] === CONSENT UPDATE CALLBACK ===");
+        Debug.Log("[AdsManager] OnConsentInfoUpdated() callback received");
+        
+        // Handle consent update errors
+        if (error != null)
+        {
+            Debug.LogError($"[AdsManager] Consent update error: {error}");
+            Debug.LogError($"[AdsManager] Error message: {error.Message}");
+            
+            HandleConsentUpdateError(error);
+            return;
+        }
+
+        Debug.Log("[AdsManager] Consent update completed successfully");
+        LogDetailedConsentStatus();
+        
+        // Google's next step: Load and show consent form if required
+        Debug.Log("[AdsManager] Calling LoadAndShowConsentFormIfRequired()");
+        
+        ConsentForm.LoadAndShowConsentFormIfRequired((FormError formError) =>
+        {
+            HandleConsentFormResult(formError);
+        });
+    }
+
+    /// <summary>
+    /// Handles errors from ConsentInformation.Update()
+    /// </summary>
+    private void HandleConsentUpdateError(FormError error)
+    {
+        // Check if we can still request ads despite the error
+        if (ConsentInformation.CanRequestAds())
+        {
+            Debug.Log("[AdsManager] Error occurred but CanRequestAds is still true");
+            Debug.Log("[AdsManager] This can happen with network issues but cached consent is valid");
+            InitializeAdMob();
+            return;
+        }
+        
+        if (enableConsentDebugging)
+        {
+            Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing consent error for testing");
+            InitializeAdMob();
+        }
+        else
+        {
+            Debug.LogError("[AdsManager] PRODUCTION ERROR: Cannot recover from consent update error");
+            Debug.LogError("[AdsManager] Consider implementing retry logic or fallback behavior");
+            
+            // In production, you might want to:
+            // 1. Retry the consent update after delay
+            // 2. Continue without ads
+            // 3. Show user an error message
+            StartCoroutine(RetryConsentUpdate());
+        }
+    }
+
+    /// <summary>
+    /// Handles the result of LoadAndShowConsentFormIfRequired()
+    /// </summary>
+    private void HandleConsentFormResult(FormError formError)
+    {
+        Debug.Log("[AdsManager] === CONSENT FORM RESULT ===");
+        
+        if (formError != null)
+        {
+            Debug.LogError($"[AdsManager] Consent form error: {formError}");
+            Debug.LogError($"[AdsManager] Error message: {formError.Message}");
+            
+            if (enableConsentDebugging)
+            {
+                Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing form error for testing");
                 InitializeAdMob();
             }
-        });
+            else
+            {
+                Debug.LogError("[AdsManager] PRODUCTION ERROR: Consent form failed");
+                // Handle form error in production
+            }
+            return;
+        }
+
+        Debug.Log("[AdsManager] Consent form process completed successfully");
+        LogDetailedConsentStatus();
+        
+        // Final check: Can we now request ads?
+        if (ConsentInformation.CanRequestAds())
+        {
+            if (!isInitialized)
+            {
+                Debug.Log("[AdsManager] Final consent check PASSED - Initializing AdMob");
+                InitializeAdMob();
+            }
+        }
+        else
+        {
+            Debug.LogWarning("[AdsManager] Consent form completed but still cannot request ads");
+            Debug.LogWarning("[AdsManager] User may have denied consent or form had issues");
+            
+            if (enableConsentDebugging)
+            {
+                Debug.Log("[AdsManager] DEBUGGING MODE: Initializing anyway for testing");
+                InitializeAdMob();
+            }
+            else
+            {
+                Debug.Log("[AdsManager] PRODUCTION: Respecting user's consent decision - no ads");
+                // Continue app without ads, respect user choice
+            }
+        }
+    }
+
+    /// <summary>
+    /// Production retry mechanism for consent update failures
+    /// </summary>
+    private IEnumerator RetryConsentUpdate()
+    {
+        int retryDelay = 5; // seconds
+        Debug.Log($"[AdsManager] Retrying consent update in {retryDelay} seconds...");
+        
+        yield return new WaitForSeconds(retryDelay);
+        
+        if (!isInitialized)
+        {
+            Debug.Log("[AdsManager] Attempting consent update retry");
+            RequestConsentInfo();
+        }
     }
 
     private void SetMediationConsent()
     {
-        bool hasConsent = ConsentInformation.ConsentStatus == ConsentStatus.Obtained;
+        Debug.Log("[AdsManager] SetMediationConsent() started");
+
+        bool canRequestAds = ConsentInformation.CanRequestAds();
+        Debug.Log($"[AdsManager] Can request ads: {canRequestAds}");
 
         // Unity Ads mediation consent
-        UnityAds.SetConsentMetaData("gdpr.consent", hasConsent);
-        UnityAds.SetConsentMetaData("privacy.consent", hasConsent);
+        UnityAds.SetConsentMetaData("gdpr.consent", canRequestAds);
+        UnityAds.SetConsentMetaData("privacy.consent", canRequestAds);
+        Debug.Log($"[AdsManager] Unity Ads consent metadata set: {canRequestAds}");
 
         // Additional mediation networks can be added here
-        Debug.Log($"Mediation consent set: {hasConsent}");
+        Debug.Log($"[AdsManager] Mediation consent configured");
     }
 
     private void InitializeAdMob()
     {
+        Debug.Log("[AdsManager] InitializeAdMob() started");
+
+        // Set mediation consent based on current consent status
+        SetMediationConsent();
+
         // Configure request configuration for test devices if needed
         var requestConfiguration = new RequestConfiguration
         {
             TestDeviceIds = enableTestAds ? new System.Collections.Generic.List<string> { "YOUR_TEST_DEVICE_ID" } : null
         };
+        Debug.Log($"[AdsManager] Request configuration created with test devices: {enableTestAds}");
 
         MobileAds.SetRequestConfiguration(requestConfiguration);
+        Debug.Log("[AdsManager] Request configuration set");
 
+        Debug.Log("[AdsManager] Calling MobileAds.Initialize()");
         MobileAds.Initialize((InitializationStatus initStatus) =>
         {
+            Debug.Log("[AdsManager] MobileAds.Initialize() callback executed");
+
             isInitialized = true;
             isColdStart = false; // Initialization complete, no longer cold start
-            Debug.Log("AdMob initialized successfully");
+            Debug.Log("[AdsManager] AdMob initialized successfully");
 
             // Log mediation adapter statuses
+            Debug.Log("[AdsManager] Mediation adapter statuses:");
             foreach (var adapterStatus in initStatus.getAdapterStatusMap())
             {
-                Debug.Log($"Adapter: {adapterStatus.Key}, Status: {adapterStatus.Value.InitializationState}, Description: {adapterStatus.Value.Description}");
+                Debug.Log($"[AdsManager] Adapter: {adapterStatus.Key}, Status: {adapterStatus.Value.InitializationState}, Description: {adapterStatus.Value.Description}");
             }
 
+            Debug.Log("[AdsManager] Starting to load all ads");
             LoadAllAds();
         });
     }
 
     private void LoadAllAds()
     {
+        Debug.Log("[AdsManager] LoadAllAds() started");
+        Debug.Log($"[AdsManager] Remove ads status: {removeAds}");
+
         // Always load rewarded ads
+        Debug.Log("[AdsManager] Loading rewarded ads...");
         LoadRewardedAd();
         LoadRewardedInterstitialAd();
 
         // Only load non-rewarded ads if removeAds is false
         if (!removeAds)
         {
+            Debug.Log("[AdsManager] Loading non-rewarded ads...");
             LoadInterstitialAd();
             LoadAppOpenAd();
             LoadBanner();
             // Don't automatically show banner - let VerifyAdmob control initial visibility
         }
+        else
+        {
+            Debug.Log("[AdsManager] Skipping non-rewarded ads due to Remove Ads setting");
+        }
+
+        Debug.Log("[AdsManager] LoadAllAds() completed");
     }
 
     // App State Management for App Open Ads
@@ -805,26 +1245,36 @@ public class AdsManager : MonoBehaviour
     #region Banner Ads
     public void LoadBanner()
     {
+        Debug.Log("[AdsManager] LoadBanner() started");
+
         if (!isInitialized)
         {
-            Debug.LogWarning("AdMob not initialized yet");
+            Debug.LogWarning("[AdsManager] AdMob not initialized yet - cannot load banner");
             return;
         }
 
         if (removeAds)
         {
-            Debug.Log("Banner ads are disabled due to Remove Ads setting");
+            Debug.Log("[AdsManager] Banner ads are disabled due to Remove Ads setting");
             return;
         }
+
+        Debug.Log($"[AdsManager] Loading banner with ID: {BANNER_ID}");
+        Debug.Log($"[AdsManager] Banner position: {currentBannerPosition}");
+        Debug.Log($"[AdsManager] Using adaptive banners: {useAdaptiveBanners}");
+        Debug.Log($"[AdsManager] Collapsible banners enabled: {enableCollapsibleBanners}");
 
         // Don't automatically set visibility - let external code control it
         DestroyBanner();
 
         AdSize adSize = GetAdSize();
+        Debug.Log($"[AdsManager] Banner ad size: {adSize.Width}x{adSize.Height}");
         bannerView = new BannerView(BANNER_ID, adSize, currentBannerPosition);
+        Debug.Log("[AdsManager] BannerView created");
 
         // Register banner events
         RegisterBannerEvents();
+        Debug.Log("[AdsManager] Banner events registered");
 
         // Load the banner
         var adRequest = CreateAdRequest();
@@ -833,11 +1283,13 @@ public class AdsManager : MonoBehaviour
         if (enableCollapsibleBanners)
         {
             adRequest.Extras.Add("collapsible", "bottom"); // or "top"
+            Debug.Log("[AdsManager] Added collapsible banner targeting");
         }
 
+        Debug.Log("[AdsManager] Calling bannerView.LoadAd()");
         bannerView.LoadAd(adRequest);
 
-        Debug.Log($"Loading {(useAdaptiveBanners ? "adaptive" : "standard")} banner ad...");
+        Debug.Log($"[AdsManager] Loading {(useAdaptiveBanners ? "adaptive" : "standard")} banner ad...");
     }
 
     private AdSize GetAdSize()
@@ -1233,14 +1685,26 @@ public class AdsManager : MonoBehaviour
         {
             isShowingAd = true;
 
-            // Subscribe to events with cleanup
-            System.Action onClosed = () =>
+            // Create delegates that will unsubscribe themselves after execution
+            System.Action onClosed = null;
+            System.Action<AdError> onFailed = null;
+
+            onClosed = () =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                interstitialAd.OnAdFullScreenContentClosed -= onClosed;
+                interstitialAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) =>
+
+            onFailed = (error) =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                interstitialAd.OnAdFullScreenContentClosed -= onClosed;
+                interstitialAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 onFailure?.Invoke();
             };
@@ -1283,22 +1747,35 @@ public class AdsManager : MonoBehaviour
     #region Rewarded Ads
     private void LoadRewardedAd()
     {
-        if (!isInitialized) return;
+        Debug.Log("[AdsManager] LoadRewardedAd() started");
 
+        if (!isInitialized)
+        {
+            Debug.LogWarning("[AdsManager] Cannot load rewarded ad - AdMob not initialized yet");
+            return;
+        }
+
+        Debug.Log($"[AdsManager] Loading rewarded ad with ID: {REWARDED_ID}");
         var adRequest = CreateAdRequest();
+        Debug.Log("[AdsManager] Ad request created, calling RewardedAd.Load()");
+
         RewardedAd.Load(REWARDED_ID, adRequest, (RewardedAd ad, LoadAdError error) =>
         {
+            Debug.Log("[AdsManager] RewardedAd.Load() callback executed");
+
             if (error != null)
             {
-                Debug.LogError($"Rewarded ad failed to load: {error}");
+                Debug.LogError($"[AdsManager] Rewarded ad failed to load: {error}");
+                Debug.LogError($"[AdsManager] Error domain: {error.GetDomain()}, code: {error.GetCode()}, message: {error.GetMessage()}");
                 RetryLoadRewarded();
                 return;
             }
 
+            Debug.Log("[AdsManager] Rewarded ad loaded successfully");
             rewardedAd = ad;
             rewardedRetryAttempt = 0;
             RegisterEventHandlers(rewardedAd);
-            Debug.Log("Rewarded ad loaded successfully");
+            Debug.Log("[AdsManager] Rewarded ad event handlers registered");
         });
     }
 
@@ -1318,32 +1795,56 @@ public class AdsManager : MonoBehaviour
 
     public void ShowRewarded(Action<Reward> onRewarded, Action onSuccess, Action onFailure)
     {
+        Debug.Log("[AdsManager] ShowRewarded() called");
+        Debug.Log($"[AdsManager] Rewarded ad status - exists: {rewardedAd != null}, can show: {rewardedAd?.CanShowAd() ?? false}");
+        Debug.Log($"[AdsManager] Is currently showing ad: {isShowingAd}");
+
         if (rewardedAd != null && rewardedAd.CanShowAd())
         {
+            Debug.Log("[AdsManager] Showing rewarded ad");
             isShowingAd = true;
 
-            System.Action onClosed = () =>
+            // Create delegates that will unsubscribe themselves after execution
+            System.Action onClosed = null;
+            System.Action<AdError> onFailed = null;
+
+            onClosed = () =>
             {
+                Debug.Log("[AdsManager] Rewarded ad closed callback");
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                rewardedAd.OnAdFullScreenContentClosed -= onClosed;
+                rewardedAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Rewarded ad completed successfully");
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) =>
+
+            onFailed = (error) =>
             {
+                Debug.LogError($"[AdsManager] Rewarded ad failed callback: {error}");
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                rewardedAd.OnAdFullScreenContentClosed -= onClosed;
+                rewardedAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Rewarded ad failed - loading new ad");
                 onFailure?.Invoke();
             };
 
             rewardedAd.OnAdFullScreenContentClosed += onClosed;
             rewardedAd.OnAdFullScreenContentFailed += onFailed;
 
+            Debug.Log("[AdsManager] Calling rewardedAd.Show()");
             rewardedAd.Show((reward) =>
             {
-                Debug.Log($"Rewarded ad granted reward: {reward.Amount} {reward.Type}");
+                Debug.Log($"[AdsManager] Rewarded ad granted reward: {reward.Amount} {reward.Type}");
                 onRewarded?.Invoke(reward);
             });
         }
         else
         {
+            Debug.LogWarning("[AdsManager] Rewarded ad not available - loading new ad");
             onFailure?.Invoke();
             LoadRewardedAd();
         }
@@ -1420,13 +1921,26 @@ public class AdsManager : MonoBehaviour
         {
             isShowingAd = true;
 
-            System.Action onClosed = () =>
+            // Create delegates that will unsubscribe themselves after execution
+            System.Action onClosed = null;
+            System.Action<AdError> onFailed = null;
+
+            onClosed = () =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                rewardedInterstitialAd.OnAdFullScreenContentClosed -= onClosed;
+                rewardedInterstitialAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) =>
+
+            onFailed = (error) =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                rewardedInterstitialAd.OnAdFullScreenContentClosed -= onClosed;
+                rewardedInterstitialAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 onFailure?.Invoke();
             };
@@ -1533,14 +2047,27 @@ public class AdsManager : MonoBehaviour
             isShowingAd = true;
             isAppOpenAdShowing = true;
 
-            System.Action onClosed = () =>
+            // Create delegates that will unsubscribe themselves after execution
+            System.Action onClosed = null;
+            System.Action<AdError> onFailed = null;
+
+            onClosed = () =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                appOpenAd.OnAdFullScreenContentClosed -= onClosed;
+                appOpenAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
                 onSuccess?.Invoke();
             };
-            System.Action<AdError> onFailed = (error) =>
+
+            onFailed = (error) =>
             {
+                // CRITICAL: Unsubscribe first to prevent memory leaks
+                appOpenAd.OnAdFullScreenContentClosed -= onClosed;
+                appOpenAd.OnAdFullScreenContentFailed -= onFailed;
+
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
                 onFailure?.Invoke();
@@ -1572,12 +2099,44 @@ public class AdsManager : MonoBehaviour
     #region Helper Methods
     private AdRequest CreateAdRequest()
     {
+        Debug.Log("[AdsManager] CreateAdRequest() started");
+
         var adRequest = new AdRequest();
+        Debug.Log("[AdsManager] AdRequest created successfully");
 
         // Add any additional request parameters here
         // For example: keywords, content URL, etc.
 
         return adRequest;
+    }
+
+    /// <summary>
+    /// Logs comprehensive debug information about AdsManager state
+    /// </summary>
+    public void LogDebugStatus()
+    {
+        Debug.Log("=== [AdsManager] DEBUG STATUS ===");
+        Debug.Log($"[AdsManager] Is Initialized: {isInitialized}");
+        Debug.Log($"[AdsManager] Is Cold Start: {isColdStart}");
+        Debug.Log($"[AdsManager] Remove Ads: {removeAds}");
+        Debug.Log($"[AdsManager] Is Showing Ad: {isShowingAd}");
+        Debug.Log($"[AdsManager] Test Ads Enabled: {enableTestAds}");
+
+        Debug.Log("[AdsManager] Ad IDs:");
+        Debug.Log($"[AdsManager]   Banner: {BANNER_ID}");
+        Debug.Log($"[AdsManager]   Interstitial: {INTERSTITIAL_ID}");
+        Debug.Log($"[AdsManager]   Rewarded: {REWARDED_ID}");
+        Debug.Log($"[AdsManager]   Rewarded Interstitial: {REWARDED_INTERSTITIAL_ID}");
+        Debug.Log($"[AdsManager]   App Open: {APP_OPEN_ID}");
+
+        Debug.Log("[AdsManager] Ad States:");
+        Debug.Log($"[AdsManager]   Banner Loaded: {isBannerLoaded}");
+        Debug.Log($"[AdsManager]   Interstitial Available: {interstitialAd != null && interstitialAd.CanShowAd()}");
+        Debug.Log($"[AdsManager]   Rewarded Available: {rewardedAd != null && rewardedAd.CanShowAd()}");
+        Debug.Log($"[AdsManager]   Rewarded Interstitial Available: {rewardedInterstitialAd != null && rewardedInterstitialAd.CanShowAd()}");
+        Debug.Log($"[AdsManager]   App Open Available: {IsAppOpenAdAvailable()}");
+
+        Debug.Log("=== [AdsManager] DEBUG STATUS END ===");
     }
     #endregion
 

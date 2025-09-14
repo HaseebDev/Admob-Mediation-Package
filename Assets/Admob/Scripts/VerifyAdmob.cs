@@ -21,6 +21,19 @@ public class VerifyAdmob : MonoBehaviour
     [SerializeField] private bool enableCollapsibleBanners = false;
     [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
 
+    [Header("Consent Configuration")]
+    [Space(5)]
+    [Tooltip("FOR TESTING ONLY - Forces EEA geography to test consent forms. DISABLE FOR PRODUCTION.")]
+    [SerializeField] private bool forceEEAGeographyForTesting = false;
+
+    [Space(5)]
+    [Tooltip("FOR TESTING ONLY - Enables consent debugging and bypasses certain errors. DISABLE FOR PRODUCTION.")]
+    [SerializeField] private bool enableConsentDebugging = false;
+
+    [Space(5)]
+    [Tooltip("PRODUCTION SETTING - Always call consent Update() regardless of geography (Google recommended).")]
+    [SerializeField] private bool alwaysRequestConsentUpdate = true;
+
     [Header("Ad Unit IDs - Android")]
     [SerializeField] private string androidBannerId = "ca-app-pub-3940256099942544/6300978111";
     [SerializeField] private string androidInterstitialId = "ca-app-pub-3940256099942544/1033173712";
@@ -37,16 +50,26 @@ public class VerifyAdmob : MonoBehaviour
 
     void Start()
     {
+        // Move all AdsManager interaction to Start()
         AdsManager.OnRemoveAdsChanged += OnRemoveAdsStatusChanged;
         AdsManager.OnRemoveAdsLoadedFromStorage += OnRemoveAdsLoadedFromStorage;
 
         AdsManager.Instance.VerifyHit();
 
-        ApplyAllSettings();
+        // Apply settings after AdsManager is properly created
+        StartCoroutine(ApplySettingsWhenReady());
 
         AdsManager.Instance.SetBannerPosition(bannerPosition);
-
         StartCoroutine(HandleInitialBannerVisibility());
+    }
+
+    private IEnumerator ApplySettingsWhenReady()
+    {
+        // Wait one frame to ensure proper initialization order
+        yield return null;
+        
+        Debug.Log("[VerifyAdmob] Applying settings after proper initialization");
+        ApplyAllSettings();
     }
 
     private IEnumerator HandleInitialBannerVisibility()
@@ -112,12 +135,20 @@ public class VerifyAdmob : MonoBehaviour
     {
         ApplyAdUnitIds();
 
+        // Core settings
         AdsManager.Instance.RemoveAds = removeAds;
+        
+        // Consent configuration (production + testing overrides)
+        AdsManager.Instance.ForceEEAGeographyForTesting = forceEEAGeographyForTesting;
+        AdsManager.Instance.EnableConsentDebugging = enableConsentDebugging;
+        AdsManager.Instance.AlwaysRequestConsentUpdate = alwaysRequestConsentUpdate;
 
+        // Ad configuration
         AdsManager.Instance.AutoShowAppOpenAds = autoShowAppOpenAds;
         AdsManager.Instance.EnableTestAds = enableTestAds;
         AdsManager.Instance.AppOpenCooldownTime = appOpenCooldownTime;
 
+        // Banner configuration  
         AdsManager.Instance.UseAdaptiveBanners = useAdaptiveBanners;
         AdsManager.Instance.EnableCollapsibleBanners = enableCollapsibleBanners;
         AdsManager.Instance.PreferredBannerSize = preferredBannerSize;
@@ -384,11 +415,11 @@ public class VerifyAdmob : MonoBehaviour
 
         if (isTest)
         {
-            Debug.LogWarning("⚠️ WARNING: You are using Google's test Ad Unit IDs. Make sure to replace these with your real Ad Unit IDs before publishing!");
+            Debug.LogWarning("WARNING: You are using Google's test Ad Unit IDs. Make sure to replace these with your real Ad Unit IDs before publishing!");
         }
         else
         {
-            Debug.Log("✅ Using custom Ad Unit IDs (not test IDs)");
+            Debug.Log("Using custom Ad Unit IDs (not test IDs)");
         }
     }
 
@@ -400,11 +431,11 @@ public class VerifyAdmob : MonoBehaviour
 
         if (!valid)
         {
-            Debug.LogError("❌ Some Ad Unit IDs are empty or invalid!");
+            Debug.LogError("Some Ad Unit IDs are empty or invalid!");
         }
         else
         {
-            Debug.Log("✅ All Ad Unit IDs are valid");
+            Debug.Log("All Ad Unit IDs are valid");
         }
     }
 
@@ -443,14 +474,15 @@ public class VerifyAdmob : MonoBehaviour
     // Validation method
     private void OnValidate()
     {
-        // Ensure cooldown time is reasonable
+        // CRITICAL FIX: Don't access AdsManager.Instance during OnValidate
+        if (!Application.isPlaying)
+            return;
+        
+        // Keep this validation - it's harmless and useful
         if (appOpenCooldownTime < 0)
             appOpenCooldownTime = 0;
 
-        // Apply settings if AdsManager instance exists and we're in play mode
-        if (Application.isPlaying && AdsManager.Instance != null)
-        {
-            ApplyAllSettings();
-        }
+        // Don't access AdsManager.Instance here anymore
+        // The settings will be applied in Start() instead
     }
 }

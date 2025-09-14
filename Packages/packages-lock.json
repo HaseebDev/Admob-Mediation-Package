@@ -1,5 +1,13 @@
 {
   "dependencies": {
+    "com.bezi.sidekick": {
+      "version": "file:com.bezi.sidekick",
+      "depth": 0,
+      "source": "embedded",
+      "dependencies": {
+        "com.unity.nuget.newtonsoft-json": "3.2.1"
+      }
+    },
     "com.boxqkrtm.ide.cursor": {
       "version": "https://github.com/boxqkrtm/com.unity.ide.cursor.git",
       "depth": 0,
@@ -10,11 +18,11 @@
       "hash": "38fecf55e4fd94ccfe58a92ed8ad1a529ba1694e"
     },
     "com.google.ads.mobile": {
-      "version": "10.2.0",
+      "version": "10.4.2",
       "depth": 0,
       "source": "registry",
       "dependencies": {
-        "com.google.external-dependency-manager": "1.2.185",
+        "com.google.external-dependency-manager": "1.2.186",
         "com.unity.modules.androidjni": "1.0.0"
       },
       "url": "https://package.openupm.com"
@@ -29,7 +37,7 @@
       "url": "https://package.openupm.com"
     },
     "com.google.external-dependency-manager": {
-      "version": "1.2.185",
+      "version": "1.2.186",
       "depth": 1,
       "source": "registry",
       "dependencies": {},
@@ -223,6 +231,13 @@
     "com.unity.nuget.mono-cecil": {
       "version": "1.11.4",
       "depth": 3,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.nuget.newtonsoft-json": {
+      "version": "3.2.1",
+      "depth": 1,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"

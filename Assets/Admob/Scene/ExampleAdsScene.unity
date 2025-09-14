@@ -1538,6 +1538,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: VerifyandInitializeAdmob
       objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: enableConsentDebugging
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 2784422891448605819, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: m_LocalPosition.x
       value: 0
