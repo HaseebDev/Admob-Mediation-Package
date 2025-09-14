@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections;
+using GoogleMobileAds.Ump.Api;
 
 public class VerifyAdmob : MonoBehaviour
 {
@@ -470,6 +471,70 @@ public class VerifyAdmob : MonoBehaviour
     public string GetIosRewardedId() => iosRewardedId;
     public string GetIosRewardedInterstitialId() => iosRewardedInterstitialId;
     public string GetIosAppOpenId() => iosAppOpenId;
+
+    // NEW: Consent and Mediation Management Methods
+    
+    /// <summary>
+    /// Manually refresh mediation consent for all mediation networks.
+    /// Call this when you add new mediation networks or when consent status changes.
+    /// </summary>
+    [ContextMenu("Refresh Mediation Consent")]
+    public void RefreshMediationConsent()
+    {
+        AdsManager.Instance.RefreshMediationConsent();
+        Debug.Log("[VerifyAdmob] Mediation consent refreshed manually");
+    }
+
+    /// <summary>
+    /// Shows the privacy options form allowing users to change their consent.
+    /// Call this from a "Privacy Settings" or "Manage Consent" button in your game UI.
+    /// </summary>
+    [ContextMenu("Show Privacy Options")]
+    public void ShowPrivacyOptionsForm()
+    {
+        AdsManager.Instance.ShowPrivacyOptionsForm();
+    }
+
+    /// <summary>
+    /// Checks if you should show a privacy options button in your UI.
+    /// Returns true for EEA users who have given consent and can modify it.
+    /// </summary>
+    public bool ShouldShowPrivacyOptionsButton()
+    {
+        return AdsManager.Instance.ShouldShowPrivacyOptionsButton();
+    }
+
+    /// <summary>
+    /// Gets the current consent status for debugging and analytics.
+    /// </summary>
+    public ConsentStatus GetCurrentConsentStatus()
+    {
+        return AdsManager.Instance.GetCurrentConsentStatus();
+    }
+
+    /// <summary>
+    /// Checks if the user can currently request ads based on consent status.
+    /// Useful for showing/hiding ad-related UI elements.
+    /// </summary>
+    public bool CanUserRequestAds()
+    {
+        return AdsManager.Instance.CanUserRequestAds();
+    }
+
+    /// <summary>
+    /// Logs comprehensive consent and mediation status for debugging.
+    /// </summary>
+    [ContextMenu("Log Consent Status")]
+    public void LogConsentStatus()
+    {
+        Debug.Log("=== [VerifyAdmob] CONSENT STATUS ===");
+        Debug.Log($"Consent Status: {GetCurrentConsentStatus()}");
+        Debug.Log($"Can Request Ads: {CanUserRequestAds()}");
+        Debug.Log($"Should Show Privacy Options: {ShouldShowPrivacyOptionsButton()}");
+        Debug.Log($"Remove Ads Enabled: {IsRemoveAdsEnabled()}");
+        Debug.Log($"AdMob Initialized: {IsAdsManagerInitialized()}");
+        Debug.Log("====================================");
+    }
 
     // Validation method
     private void OnValidate()

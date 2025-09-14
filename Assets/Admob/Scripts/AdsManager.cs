@@ -878,6 +878,9 @@ public class AdsManager : MonoBehaviour
         Debug.Log("[AdsManager] Consent Status: NOT REQUIRED");
         Debug.Log("[AdsManager] User is not in a region requiring consent (non-EEA)");
         
+        // Set mediation consent for non-EEA users too
+        SetMediationConsent();
+        
         if (!isInitialized)
         {
             Debug.Log("[AdsManager] Proceeding with AdMob initialization");
@@ -892,6 +895,9 @@ public class AdsManager : MonoBehaviour
     {
         Debug.Log("[AdsManager] Consent Status: OBTAINED");
         Debug.Log("[AdsManager] User previously provided consent");
+        
+        // Set mediation consent for users with existing consent
+        SetMediationConsent();
         
         if (!isInitialized)
         {
@@ -912,6 +918,9 @@ public class AdsManager : MonoBehaviour
         {
             Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing unknown status for testing");
             Debug.Log("[AdsManager] In production, this would wait for network recovery or callback");
+            
+            // Set mediation consent even with unknown status in debugging
+            SetMediationConsent();
             
             if (!isInitialized)
             {
@@ -937,6 +946,9 @@ public class AdsManager : MonoBehaviour
         {
             Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing missing form for testing");
             Debug.Log("[AdsManager] In production, you MUST configure privacy messages in AdMob Console");
+            
+            // Set mediation consent even when debugging missing forms
+            SetMediationConsent();
             
             if (!isInitialized)
             {
@@ -1073,6 +1085,8 @@ public class AdsManager : MonoBehaviour
             if (enableConsentDebugging)
             {
                 Debug.Log("[AdsManager] DEBUGGING MODE: Bypassing form error for testing");
+                // Set mediation consent even in debugging mode
+                SetMediationConsent();
                 InitializeAdMob();
             }
             else
@@ -1085,6 +1099,9 @@ public class AdsManager : MonoBehaviour
 
         Debug.Log("[AdsManager] Consent form process completed successfully");
         LogDetailedConsentStatus();
+        
+        // IMPORTANT: Update mediation consent after form completion
+        SetMediationConsent();
         
         // Final check: Can we now request ads?
         if (ConsentInformation.CanRequestAds())
@@ -1135,15 +1152,62 @@ public class AdsManager : MonoBehaviour
         Debug.Log("[AdsManager] SetMediationConsent() started");
 
         bool canRequestAds = ConsentInformation.CanRequestAds();
+        bool hasConsent = ConsentInformation.ConsentStatus == ConsentStatus.Obtained;
+        bool isEEA = ConsentInformation.ConsentStatus == ConsentStatus.Required;
+        
         Debug.Log($"[AdsManager] Can request ads: {canRequestAds}");
+        Debug.Log($"[AdsManager] Has explicit consent: {hasConsent}");
+        Debug.Log($"[AdsManager] Is EEA user: {isEEA}");
 
-        // Unity Ads mediation consent
+        // Unity Ads mediation consent - Enhanced for better GDPR compliance
         UnityAds.SetConsentMetaData("gdpr.consent", canRequestAds);
         UnityAds.SetConsentMetaData("privacy.consent", canRequestAds);
-        Debug.Log($"[AdsManager] Unity Ads consent metadata set: {canRequestAds}");
+        
+        // Additional Unity Ads GDPR compliance for EEA users
+        if (isEEA)
+        {
+            UnityAds.SetConsentMetaData("gdpr.consent", hasConsent);
+            Debug.Log($"[AdsManager] Unity Ads EEA-specific consent set: {hasConsent}");
+        }
+        
+        Debug.Log($"[AdsManager] Unity Ads consent metadata configured successfully");
 
-        // Additional mediation networks can be added here
-        Debug.Log($"[AdsManager] Mediation consent configured");
+        // Add other mediation networks as needed - Ready for future expansion
+        // When you add more mediation networks, configure their consent here:
+        
+        /*
+        // Example: Facebook Audience Network (if you add it later)
+        if (canRequestAds)
+        {
+            // Facebook.Unity.FB.Mobile.SetAdvertiserIDCollectionEnabled(true);
+            // Facebook.Unity.FB.Mobile.SetDataProcessingOptions(new string[] {});
+            Debug.Log("[AdsManager] Facebook mediation consent configured");
+        }
+        
+        // Example: AppLovin MAX (if you add it later)
+        if (canRequestAds)
+        {
+            // MaxSdk.SetHasUserConsent(hasConsent);
+            // MaxSdk.SetIsAgeRestrictedUser(false);
+            Debug.Log("[AdsManager] AppLovin mediation consent configured");
+        }
+        
+        // Example: ironSource (if you add it later)
+        if (canRequestAds)
+        {
+            // IronSource.Agent.setConsent(hasConsent);
+            Debug.Log("[AdsManager] ironSource mediation consent configured");
+        }
+        
+        // Example: Chartboost (if you add it later)
+        if (canRequestAds)
+        {
+            // Chartboost.setPIDataUseConsent(hasConsent ? CBPIDataUseConsent.YesBehavioral : CBPIDataUseConsent.NoBehavioral);
+            Debug.Log("[AdsManager] Chartboost mediation consent configured");
+        }
+        */
+
+        Debug.Log("[AdsManager] Mediation consent configuration completed for all networks");
     }
 
     private void InitializeAdMob()
@@ -1696,6 +1760,8 @@ public class AdsManager : MonoBehaviour
                 interstitialAd.OnAdFullScreenContentFailed -= onFailed;
 
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Interstitial ad closed - loading next ad");
+                LoadInterstitialAd(); // CRITICAL: Load next ad immediately after successful display
                 onSuccess?.Invoke();
             };
 
@@ -1706,6 +1772,8 @@ public class AdsManager : MonoBehaviour
                 interstitialAd.OnAdFullScreenContentFailed -= onFailed;
 
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Interstitial ad failed - loading next ad");
+                LoadInterstitialAd(); // CRITICAL: Load next ad even after failure
                 onFailure?.Invoke();
             };
 
@@ -1816,7 +1884,8 @@ public class AdsManager : MonoBehaviour
                 rewardedAd.OnAdFullScreenContentFailed -= onFailed;
 
                 isShowingAd = false;
-                Debug.Log("[AdsManager] Rewarded ad completed successfully");
+                Debug.Log("[AdsManager] Rewarded ad completed successfully - loading next ad");
+                LoadRewardedAd(); // CRITICAL: Load next ad immediately after successful display
                 onSuccess?.Invoke();
             };
 
@@ -1829,6 +1898,7 @@ public class AdsManager : MonoBehaviour
 
                 isShowingAd = false;
                 Debug.Log("[AdsManager] Rewarded ad failed - loading new ad");
+                LoadRewardedAd(); // CRITICAL: Load next ad even after failure
                 onFailure?.Invoke();
             };
 
@@ -1932,6 +2002,8 @@ public class AdsManager : MonoBehaviour
                 rewardedInterstitialAd.OnAdFullScreenContentFailed -= onFailed;
 
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Rewarded interstitial ad closed - loading next ad");
+                LoadRewardedInterstitialAd(); // CRITICAL: Load next ad immediately after successful display
                 onSuccess?.Invoke();
             };
 
@@ -1942,6 +2014,8 @@ public class AdsManager : MonoBehaviour
                 rewardedInterstitialAd.OnAdFullScreenContentFailed -= onFailed;
 
                 isShowingAd = false;
+                Debug.Log("[AdsManager] Rewarded interstitial ad failed - loading next ad");
+                LoadRewardedInterstitialAd(); // CRITICAL: Load next ad even after failure
                 onFailure?.Invoke();
             };
 
@@ -2059,6 +2133,8 @@ public class AdsManager : MonoBehaviour
 
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
+                Debug.Log("[AdsManager] App open ad closed - loading next ad");
+                LoadAppOpenAd(); // CRITICAL: Load next ad immediately after successful display
                 onSuccess?.Invoke();
             };
 
@@ -2070,6 +2146,8 @@ public class AdsManager : MonoBehaviour
 
                 isShowingAd = false;
                 isAppOpenAdShowing = false;
+                Debug.Log("[AdsManager] App open ad failed - loading next ad");
+                LoadAppOpenAd(); // CRITICAL: Load next ad even after failure
                 onFailure?.Invoke();
             };
 
@@ -2354,5 +2432,76 @@ public class AdsManager : MonoBehaviour
     public void VerifyHit()
     {
         Debug.Log("Admob Verified and Instanciated");
+    }
+
+    /// <summary>
+    /// Manually refresh mediation consent for all mediation networks.
+    /// Useful when consent status changes or when adding new mediation networks.
+    /// </summary>
+    public void RefreshMediationConsent()
+    {
+        Debug.Log("[AdsManager] RefreshMediationConsent() called manually");
+        SetMediationConsent();
+    }
+
+    /// <summary>
+    /// Shows the privacy options form to allow users to change their consent choices.
+    /// This should be called from a "Privacy Settings" or "Manage Consent" button in your UI.
+    /// </summary>
+    public void ShowPrivacyOptionsForm()
+    {
+        Debug.Log("[AdsManager] ShowPrivacyOptionsForm() called");
+        
+        if (ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required)
+        {
+            Debug.Log("[AdsManager] Privacy options form is required - showing form");
+            ConsentForm.ShowPrivacyOptionsForm((FormError formError) =>
+            {
+                if (formError != null)
+                {
+                    Debug.LogError($"[AdsManager] Privacy options form error: {formError}");
+                    Debug.LogError($"[AdsManager] Error message: {formError.Message}");
+                }
+                else
+                {
+                    Debug.Log("[AdsManager] Privacy options form completed successfully");
+                    // Refresh mediation consent after privacy options change
+                    SetMediationConsent();
+                }
+            });
+        }
+        else
+        {
+            Debug.LogWarning("[AdsManager] Privacy options form is not required for this user");
+            Debug.LogWarning("[AdsManager] This typically means the user is not in EEA or has not given consent yet");
+        }
+    }
+
+    /// <summary>
+    /// Checks if privacy options entry point should be shown in your UI.
+    /// Call this to determine whether to show a "Privacy Settings" button.
+    /// </summary>
+    public bool ShouldShowPrivacyOptionsButton()
+    {
+        bool shouldShow = ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required;
+        Debug.Log($"[AdsManager] Should show privacy options button: {shouldShow}");
+        return shouldShow;
+    }
+
+    /// <summary>
+    /// Gets the current consent status for debugging and analytics purposes.
+    /// </summary>
+    public ConsentStatus GetCurrentConsentStatus()
+    {
+        return ConsentInformation.ConsentStatus;
+    }
+
+    /// <summary>
+    /// Checks if the user can request ads based on current consent status.
+    /// Useful for showing/hiding ad-related UI elements.
+    /// </summary>
+    public bool CanUserRequestAds()
+    {
+        return ConsentInformation.CanRequestAds();
     }
 }
