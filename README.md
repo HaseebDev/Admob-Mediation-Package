@@ -263,7 +263,7 @@ if (AdsManager.Instance.IsFirstTimeLoading)
 
 | Version | Release Date | Key Features |
 |---------|-------------|--------------|
-| **[v2.0.3](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.3)** | **Latest** | **Added comprehensive documentation, enhanced logging system, improved consent flow, fixed rewarded crashes, code readability improvements, minor bug fixes** |
+| **[v2.0.3](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.3)** | **Latest** | **Added comprehensive documentation and enhanced package, enhanced logging system, improved consent flow, fixed rewarded crashes, code readability improvements, minor bug fixes** |
 | [v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2) | Previous | Enhanced UI integration, visual remove ads indicator, smart banner visibility control, professional debug logging, code quality improvements, real-time UI updates, enhanced banner management, better user experience |
 | [v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1) | Previous | Remove Ads system, persistence, full configuration exposure, comprehensive testing |
 | [v2.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.0) | Legacy | Adaptive banners, collapsible support, revenue tracking |
