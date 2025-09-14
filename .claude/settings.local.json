@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "WebSearch",
-      "WebFetch(domain:support.google.com)"
+      "WebFetch(domain:support.google.com)",
+      "Bash(git push:*)",
+      "Bash(gh release create:*)",
+      "Bash(git add:*)"
     ],
     "deny": [],
     "ask": []

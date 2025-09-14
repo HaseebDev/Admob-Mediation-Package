@@ -1,17 +1,29 @@
 # 🎮 Autech AdMob Mediation Unity Ads
 
+## 📖 Documentation
+
+**Comprehensive guides and documentation are available in the package:**
+
+### 📚 Documentation Files (Available in v2.0.3+)
+- **[📋 Quick Implementation Checklist](Assets/Admob/Documentation/QuickImplementationChecklist.md)** - Fast-track setup guide (15 minutes)
+- **[📖 Comprehensive Implementation Guide](Assets/Admob/Documentation/ComprehensiveImplementationGuide.md)** - Deep-dive architecture and best practices
+- **[🛡️ GDPR Consent Management Guide](Assets/Admob/Documentation/MediationConsentGuide.md)** - Complete consent flow implementation
+- **[✅ Google Certified CMP Integration](Assets/Admob/Documentation/GoogleCertifiedCMPImplementation.md)** - Enterprise consent solutions
+
+> **💡 Quick Start**: Download v2.0.3 and check `Assets/Admob/Documentation/` for step-by-step guides!
+
 ![Unity Version](https://img.shields.io/badge/Unity-2020.3%2B-blue.svg)
-![Version](https://img.shields.io/badge/version-2.0.2-brightgreen.svg)
+![Version](https://img.shields.io/badge/version-2.0.3-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 ![Release](https://img.shields.io/github/v/release/HaseebDev/Admob-Mediation-Package?include_prereleases)
 
 A powerful and production-ready AdMob integration package with Unity Ads mediation for Unity projects. Featuring advanced banner controls, comprehensive ad management, Remove Ads system with persistence, and enterprise-grade error handling.
 
-## 🎉 Latest Release - v2.0.2
+## 🎉 Latest Release - v2.0.3
 
-**[📥 Download v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2)**
+**[📥 Download v2.0.3](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.3)**
 
-### 🚀 What's New in v2.0.2:
+### 🚀 What's New in v2.0.3:
 - 🎯 **Enhanced UI Integration** - Dynamic button states based on ad availability with real-time feedback
 - 🎨 **Visual Remove Ads Indicator** - Color-coded button (Red/Green) showing current Remove Ads status
 - 📱 **Smart Banner Visibility Control** - First-time loading detection with proper timing after consent
@@ -133,8 +145,8 @@ AdsManager.Instance.ShowRewarded(
 ### Step 1
 
 1. **Download Latest Release**
-   - [📥 Download v2.0.2.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.2/2.0.2.unitypackage)
-   - File size: ~21 KiB
+   - [📥 Download v2.0.3.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.3/2.0.3.unitypackage)
+   - File size: ~51 KiB
 
 2. **Import Package**
    - In Unity: `Assets > Import Package > Custom Package...`
@@ -251,7 +263,8 @@ if (AdsManager.Instance.IsFirstTimeLoading)
 
 | Version | Release Date | Key Features |
 |---------|-------------|--------------|
-| **[v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2)** | **Latest** | **Enhanced UI integration, visual remove ads indicator, smart banner visibility control, professional debug logging, code quality improvements, real-time UI updates, enhanced banner management, better user experience** |
+| **[v2.0.3](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.3)** | **Latest** | **Added comprehensive documentation, enhanced logging system, improved consent flow, fixed rewarded crashes, code readability improvements, minor bug fixes** |
+| [v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2) | Previous | Enhanced UI integration, visual remove ads indicator, smart banner visibility control, professional debug logging, code quality improvements, real-time UI updates, enhanced banner management, better user experience |
 | [v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1) | Previous | Remove Ads system, persistence, full configuration exposure, comprehensive testing |
 | [v2.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.0) | Legacy | Adaptive banners, collapsible support, revenue tracking |
 | [v1.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v1.0.0) | Initial release | Basic ad integration |
