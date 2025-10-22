@@ -1,2 +1,30 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Git attributes for Unity Package Manager
+# Controls which files are included when package is installed
+
+# Exclude Unity project-specific folders
+Assets/ export-ignore
+Packages/ export-ignore
+ProjectSettings/ export-ignore
+Library/ export-ignore
+Temp/ export-ignore
+Logs/ export-ignore
+UserSettings/ export-ignore
+obj/ export-ignore
+
+# Exclude IDE and tool folders
+.vs/ export-ignore
+.vscode/ export-ignore
+.bezisidekick/ export-ignore
+.claude/ export-ignore
+
+# Exclude releases and build outputs
+releases/ export-ignore
+Builds/ export-ignore
+Build/ export-ignore
+
+# Exclude git files
+.git export-ignore
+.github/ export-ignore
