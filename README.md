@@ -237,8 +237,15 @@ Import via `Assets > Import Package > Custom Package...`
 **Error: "Package cannot be found"?**
 → Install dependencies first! See [INSTALL.md](INSTALL.md)
 
+**Console warnings about "no meta file"?**
+→ These are harmless! See [KNOWN_ISSUES.md](KNOWN_ISSUES.md) - Package works correctly
+
 **Dependencies not showing?**
 → Add OpenUPM scoped registry (Step 1 above)
+
+**Plugin folder is empty / Can't find scripts?**
+→ Scripts are in `Packages/com.autech.admob-mediation/Runtime/Scripts/` (not Plugins/)
+→ Check Package Manager shows the package is installed
 
 **Still having issues?**
 → Check [INSTALL.md](INSTALL.md) for detailed troubleshooting
