@@ -2,7 +2,7 @@
   "name": "com.autech.admob-mediation",
   "version": "2.0.3",
   "displayName": "Autech AdMob Mediation",
-  "description": "A powerful and production-ready AdMob integration package with Unity Ads mediation for Unity projects. Features comprehensive ad management, GDPR consent handling, Remove Ads system with persistence, and enterprise-grade error handling.",
+  "description": "A powerful and production-ready AdMob integration package with Unity Ads mediation for Unity projects. Features comprehensive ad management, GDPR consent handling, Remove Ads system with persistence, and enterprise-grade error handling. IMPORTANT: Requires Google Mobile Ads SDK and Unity Ads Mediation - see Installation Guide in README.",
   "unity": "2020.3",
   "keywords": [
     "admob",
@@ -27,10 +27,6 @@
     "url": "https://github.com/HaseebDev/Admob-Mediation-Package.git"
   },
   "license": "MIT",
-  "dependencies": {
-    "com.google.ads.mobile": "10.4.2",
-    "com.google.ads.mobile.mediation.unity": "3.15.0"
-  },
   "samples": [
     {
       "displayName": "Example Scene and UI",
