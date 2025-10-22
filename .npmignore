@@ -1,0 +1,31 @@
+# Ignore Unity project files
+Assets/
+Packages/
+ProjectSettings/
+Library/
+Temp/
+Logs/
+UserSettings/
+obj/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.user
+*.pidb
+*.userprefs
+*.DS_Store
+
+# Ignore build outputs
+Build/
+Builds/
+
+# Keep only the package structure
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE.md
+!Runtime/
+!Editor/
+!Samples~/
+!Documentation~/
