@@ -142,109 +142,106 @@ AdsManager.Instance.ShowRewarded(
 
 ## 🚀 Installation Guide
 
-### Method 1: Unity Package Manager (Recommended)
+> ⚠️ **IMPORTANT**: Dependencies must be installed FIRST!
+>
+> **[📖 Complete Installation Guide →](INSTALL.md)**
 
-**Install directly from Git URL** - No download required!
+### Quick Install (3 Steps)
 
-1. **Open Package Manager**
-   - In Unity: `Window > Package Manager`
+**Step 1: Add OpenUPM Registry**
+- `Edit > Project Settings > Package Manager`
+- Add Scoped Registry:
+  - Name: `package.openupm.com`
+  - URL: `https://package.openupm.com`
+  - Scopes: `com.google.ads.mobile`, `com.google.external-dependency-manager`
+- Click **Save**
 
-2. **Add Package from Git URL**
-   - Click the `+` button in the top-left corner
-   - Select `Add package from git URL...`
-   - Enter: `https://github.com/HaseebDev/Admob-Mediation-Package.git`
-   - Click `Add`
+**Step 2: Install Dependencies**
+- `Window > Package Manager`
+- Change dropdown to **My Registries**
+- Install **Google Mobile Ads** (10.4.2+)
+- Install **Google Mobile Ads Unity Ads Mediation** (3.15.0+)
 
-3. **Install Dependencies**
-   The package will automatically attempt to install required dependencies:
-   - `com.google.ads.mobile` (10.4.2)
-   - `com.google.ads.mobile.mediation.unity` (3.15.0)
+**Step 3: Install This Package**
+- Package Manager → `+` → **Add package from git URL**
+- Enter: `https://github.com/HaseebDev/Admob-Mediation-Package.git`
+- Click **Add**
 
-   If automatic installation fails, install manually via OpenUPM (see Method 2).
+✅ **Done!** The package will install successfully.
 
-4. **Import Samples (Optional)**
-   - In Package Manager, select the package
-   - Expand `Samples` section
-   - Click `Import` on "Example Scene and UI"
-   - Click `Import` on "Prefabs"
+---
 
-**Quick Start After Installation:**
-- Drag `Samples/Prefabs/VerifyandInitializeAdmob` prefab into your scene
-- Configure Ad Unit IDs in the Inspector
-- Press Play to test!
+### Alternative: OpenUPM CLI (Fastest)
 
-### Method 2: Unity Package Manager with OpenUPM
-
-**For more control over dependencies:**
-
-#### Install Node.js (if not already installed)
-1. Visit [https://nodejs.org/](https://nodejs.org/)
-2. Download and install the recommended version
-3. Verify: `node --version`
-
-#### Install OpenUPM CLI
 ```bash
+# Install OpenUPM CLI
 npm install -g openupm-cli
-```
 
-#### Install Package and Dependencies
-```bash
-cd <your-unity-project-path>
+# Navigate to project
+cd your-unity-project
 
-# Install Google Mobile Ads SDK
+# Install dependencies
 openupm add com.google.ads.mobile
-
-# Install Unity Ads Mediation
 openupm add com.google.ads.mobile.mediation.unity
-
-# Then add this package via Package Manager Git URL as shown in Method 1
 ```
 
-### Method 3: Download UnityPackage (Legacy)
+Then add this package via Git URL in Package Manager.
 
-1. **Download Latest Release**
-   - [📥 Download v2.0.3.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.3/2.0.3.unitypackage)
-   - File size: ~51 KiB
+---
 
-2. **Import Package**
-   - In Unity: `Assets > Import Package > Custom Package...`
-   - Select the downloaded `.unitypackage` file
-   - Import all assets
+### Alternative: manifest.json (One-Step)
 
-### Install Dependencies (All Methods)
+Edit `Packages/manifest.json`:
 
-#### Install Node.js
-1. Visit [https://nodejs.org/](https://nodejs.org/)
-2. Download and install the recommended version
-3. Verify: `node --version`
-
-#### Install OpenUPM CLI
-```bash
-npm install -g openupm-cli
+```json
+{
+  "scopedRegistries": [
+    {
+      "name": "package.openupm.com",
+      "url": "https://package.openupm.com",
+      "scopes": ["com.google.ads.mobile", "com.google.external-dependency-manager"]
+    }
+  ],
+  "dependencies": {
+    "com.google.ads.mobile": "10.4.2",
+    "com.google.ads.mobile.mediation.unity": "3.15.0",
+    "com.autech.admob-mediation": "https://github.com/HaseebDev/Admob-Mediation-Package.git"
+  }
+}
 ```
 
-### Post-Installation Setup
+Save, reopen Unity - everything installs automatically!
 
-1. **Configure AdMob Settings**
-   - Unity will create `Assets/GoogleMobileAdsSettings.asset` automatically
-   - Or create manually: `Assets > Google Mobile Ads > Settings`
-   - Add your AdMob App ID
+---
 
-2. **Import Samples** (if using Package Manager method)
-   - Open Package Manager
-   - Select "Autech AdMob Mediation" package
-   - Import "Prefabs" sample
-   - Import "Example Scene and UI" sample (optional)
+### Legacy: UnityPackage Download
 
-3. **Add to Scene**:
-   - Drag `Samples/Prefabs/VerifyandInitializeAdmob` prefab into your scene
-   - Handles all initialization automatically
+[📥 Download v2.0.3.unitypackage](https://github.com/HaseebDev/Admob-Mediation-Package/releases/download/v2.0.3/2.0.3.unitypackage) (51 KiB)
 
-4. **Configure Settings**:
-   - Select the prefab in hierarchy
-   - Configure ad settings in the Inspector
-   - Replace test Ad IDs with your production IDs
-   - Set up Remove Ads preferences
+Import via `Assets > Import Package > Custom Package...`
+
+---
+
+## 📦 After Installation
+
+1. **Configure AdMob** → `Assets > Google Mobile Ads > Settings`
+2. **Import Prefabs Sample** → Package Manager → Samples → Import
+3. **Add to Scene** → Drag `Samples/Prefabs/VerifyandInitializeAdmob` prefab
+4. **Configure** → Set Ad Unit IDs, consent settings
+5. **Test** → Press Play!
+
+---
+
+## 🆘 Troubleshooting
+
+**Error: "Package cannot be found"?**
+→ Install dependencies first! See [INSTALL.md](INSTALL.md)
+
+**Dependencies not showing?**
+→ Add OpenUPM scoped registry (Step 1 above)
+
+**Still having issues?**
+→ Check [INSTALL.md](INSTALL.md) for detailed troubleshooting
 
 ## 🎮 Usage Examples
 
