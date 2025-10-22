@@ -1,5 +1,0 @@
-[33m7920a8d[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m Release v2.0.3: Added comprehensive documentation and enhanced package
-[33md70749b[m[33m ([m[1;33mtag: [m[1;33mv2.0.3[m[33m)[m Added Docuemntation, Added Detailed Logging, Made code more readable, Fixed few minor issues in the Consent Flow and AdLoading.
-[33mabeaa48[m fixed Rewarded Crash added Google's new Consent Flow and Testing Variables.
-[33m45fcda7[m Update README.md
-[33me7bd84c[m[33m ([m[1;33mtag: [m[1;33mv2.0.2[m[33m)[m feat: Enhanced UI integration with smart banner control and code cleanup (v2.0.2)

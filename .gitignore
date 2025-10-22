@@ -1,6 +1,11 @@
-.gitignore
-.gitattributes
+# Git ignore for Unity Package Manager
+# Files listed here won't be tracked in git
+
+# Releases - these should only be in GitHub Releases, not the repo
 releases/
+*.unitypackage
+
+# Unity project files (not part of UPM package)
 Assets/
 Packages/
 ProjectSettings/
@@ -8,11 +13,23 @@ Library/
 Temp/
 Logs/
 UserSettings/
+obj/
+
+# IDE files
 .vs/
 .vscode/
 .bezisidekick/
 .claude/
-obj/
 *.csproj
 *.sln
-*.unitypackage
+*.suo
+*.user
+
+# OS files
+.DS_Store
+Thumbs.db
+*.tmp
+
+# Don't track these config files in package
+.gitignore
+.gitattributes

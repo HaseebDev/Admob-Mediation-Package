@@ -78,6 +78,24 @@ This means dependencies aren't installed yet. Go back to Step 1 and ensure:
 - Google Mobile Ads SDK is installed
 - Unity Ads Mediation is installed
 
+### Windows Permission Error (EPERM)
+
+**Error**: `Failed to rename...error code [EPERM]`
+
+**If you see this error**, it means you're using an older version of the repository. This has been fixed!
+
+**Solution**:
+1. Remove the package if partially installed
+2. Close Unity
+3. Delete: `Library/PackageCache/com.autech.admob-mediation@*`
+4. Reopen Unity
+5. Try installing again - the issue is now resolved in the latest version
+
+**What was the problem?**
+- Earlier versions had problematic files that Windows couldn't handle
+- These have been removed from the repository
+- Latest version installs cleanly on Windows
+
 ### OpenUPM Registry Not Showing Packages
 
 1. Close and reopen Package Manager
