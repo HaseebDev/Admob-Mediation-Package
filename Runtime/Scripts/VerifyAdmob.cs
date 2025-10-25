@@ -536,6 +536,15 @@ public class VerifyAdmob : MonoBehaviour
         Debug.Log("====================================");
     }
 
+    /// <summary>
+    /// Logs information about the encryption system being used.
+    /// </summary>
+    [ContextMenu("Log Encryption Info")]
+    public void LogEncryptionInfo()
+    {
+        AdsManager.Instance.LogEncryptionInfo();
+    }
+
     // Validation method
     private void OnValidate()
     {

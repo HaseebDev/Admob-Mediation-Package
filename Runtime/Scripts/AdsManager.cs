@@ -90,7 +90,7 @@ public class AdsManager : MonoBehaviour
     [SerializeField] private bool useEncryptedStorage = true;
     [SerializeField] private bool enableCloudSync = false;
     [SerializeField] private string removeAdsKey = "RemoveAds_Status";
-    [SerializeField] private string encryptionKey = "YourCustomEncryptionKey123"; // Change this in production
+    [SerializeField] private string encryptionKey = "YourCustomEncryptionKey123"; // Used as salt for AES-256 encryption - customize this per app
 
     [Header("Banner Settings")]
     [SerializeField] private bool useAdaptiveBanners = true;
@@ -381,57 +381,20 @@ public class AdsManager : MonoBehaviour
 
     private void SaveEncryptedBool(string key, bool value)
     {
-        string encryptedValue = EncryptString(value.ToString(), encryptionKey);
-        PlayerPrefs.SetString(key + "_encrypted", encryptedValue);
-        PlayerPrefs.Save();
+        // Use new AES-256 encryption via SecureStorage
+        bool success = SecureStorage.SaveEncryptedBool(key, value, encryptionKey);
+        if (!success)
+        {
+            Debug.LogWarning($"[AdsManager] Failed to save encrypted value for key: {key}");
+        }
     }
 
     private bool LoadEncryptedBool(string key, bool defaultValue)
     {
-        string encryptedValue = PlayerPrefs.GetString(key + "_encrypted", "");
-        if (string.IsNullOrEmpty(encryptedValue))
-        {
-            return defaultValue;
-        }
-
-        try
-        {
-            string decryptedValue = DecryptString(encryptedValue, encryptionKey);
-            return bool.Parse(decryptedValue);
-        }
-        catch (System.Exception e)
-        {
-            Debug.LogWarning($"Failed to decrypt Remove Ads status: {e.Message}. Using default value.");
-            return defaultValue;
-        }
-    }
-
-    private string EncryptString(string text, string key)
-    {
-        // Simple XOR encryption (replace with stronger encryption in production)
-        byte[] data = System.Text.Encoding.UTF8.GetBytes(text);
-        byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
-
-        for (int i = 0; i < data.Length; i++)
-        {
-            data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
-        }
-
-        return Convert.ToBase64String(data);
-    }
-
-    private string DecryptString(string encryptedText, string key)
-    {
-        // Simple XOR decryption (replace with stronger encryption in production)
-        byte[] data = System.Convert.FromBase64String(encryptedText);
-        byte[] keyBytes = System.Text.Encoding.UTF8.GetBytes(key);
-
-        for (int i = 0; i < data.Length; i++)
-        {
-            data[i] = (byte)(data[i] ^ keyBytes[i % keyBytes.Length]);
-        }
-
-        return System.Text.Encoding.UTF8.GetString(data);
+        // Load with AES-256 encryption with HMAC integrity verification
+        // SECURITY NOTE: Automatic migration has been removed for security
+        // If migrating from old XOR encryption, call MigrateLegacyData() once
+        return SecureStorage.LoadEncryptedBool(key, defaultValue, encryptionKey);
     }
 
     // Cloud Save Integration Points
@@ -510,7 +473,7 @@ public class AdsManager : MonoBehaviour
     {
         if (useEncryptedStorage)
         {
-            PlayerPrefs.DeleteKey(removeAdsKey + "_encrypted");
+            SecureStorage.DeleteEncryptedData(removeAdsKey);
         }
         else
         {
@@ -526,12 +489,68 @@ public class AdsManager : MonoBehaviour
     {
         if (useEncryptedStorage)
         {
-            return PlayerPrefs.HasKey(removeAdsKey + "_encrypted");
+            return SecureStorage.HasEncryptedData(removeAdsKey);
         }
         else
         {
             return PlayerPrefs.HasKey(removeAdsKey);
         }
+    }
+
+    /// <summary>
+    /// Manually migrates legacy XOR-encrypted data to new secure AES format.
+    /// SECURITY: Call this ONCE when upgrading from version with old XOR encryption.
+    /// Then REMOVE this call from your code to prevent exploitation.
+    /// </summary>
+    /// <returns>True if migration completed or not needed, false if failed</returns>
+    public bool MigrateLegacyEncryption()
+    {
+        if (!useEncryptedStorage)
+        {
+            Debug.Log("[AdsManager] Encryption not enabled - migration not needed");
+            return true;
+        }
+
+        // Check if migration is needed
+        if (!SecureStorage.HasLegacyData(removeAdsKey))
+        {
+            Debug.Log("[AdsManager] No legacy data found - migration not needed");
+            return true;
+        }
+
+        Debug.LogWarning("[AdsManager] ========================================");
+        Debug.LogWarning("[AdsManager] MIGRATING LEGACY XOR DATA TO AES-256");
+        Debug.LogWarning("[AdsManager] This should only run ONCE");
+        Debug.LogWarning("[AdsManager] ========================================");
+
+        // Perform migration using the encryption key (which was the XOR key)
+        bool success = SecureStorage.MigrateLegacyData(removeAdsKey, encryptionKey, encryptionKey);
+
+        if (success)
+        {
+            Debug.LogWarning("[AdsManager] ========================================");
+            Debug.LogWarning("[AdsManager] MIGRATION COMPLETED SUCCESSFULLY");
+            Debug.LogWarning("[AdsManager] IMPORTANT: Remove MigrateLegacyEncryption() call from your code NOW");
+            Debug.LogWarning("[AdsManager] ========================================");
+
+            // Reload the migrated data
+            LoadRemoveAdsStatus();
+        }
+        else
+        {
+            Debug.LogError("[AdsManager] Migration failed - please check logs");
+        }
+
+        return success;
+    }
+
+    /// <summary>
+    /// Checks if legacy data exists that needs migration.
+    /// Use this to determine if you should call MigrateLegacyEncryption().
+    /// </summary>
+    public bool NeedsLegacyMigration()
+    {
+        return useEncryptedStorage && SecureStorage.HasLegacyData(removeAdsKey);
     }
     #endregion
 
@@ -2215,6 +2234,38 @@ public class AdsManager : MonoBehaviour
         Debug.Log($"[AdsManager]   App Open Available: {IsAppOpenAdAvailable()}");
 
         Debug.Log("=== [AdsManager] DEBUG STATUS END ===");
+    }
+
+    /// <summary>
+    /// Logs information about the encryption system being used for Remove Ads data.
+    /// Useful for debugging storage and security issues.
+    /// </summary>
+    public void LogEncryptionInfo()
+    {
+        Debug.Log("=== [AdsManager] ENCRYPTION INFO ===");
+        Debug.Log($"[AdsManager] Encrypted Storage Enabled: {useEncryptedStorage}");
+        Debug.Log($"[AdsManager] Has Stored Data: {HasRemoveAdsDataInStorage()}");
+
+        if (useEncryptedStorage)
+        {
+            Debug.Log($"[AdsManager] Encryption Method: AES-256-CBC");
+            Debug.Log($"[AdsManager] Key Derivation: PBKDF2 (10000 iterations)");
+            Debug.Log($"[AdsManager] {SecureStorage.GetEncryptionInfo()}");
+            Debug.Log($"[AdsManager] Custom Salt Configured: {!string.IsNullOrEmpty(encryptionKey)}");
+
+            if (encryptionKey == "YourCustomEncryptionKey123")
+            {
+                Debug.LogWarning("[AdsManager] WARNING: Using default encryption key. Change this in production!");
+            }
+        }
+        else
+        {
+            Debug.Log($"[AdsManager] Encryption Method: None (Plain PlayerPrefs)");
+            Debug.LogWarning("[AdsManager] WARNING: Remove Ads data is not encrypted!");
+        }
+
+        Debug.Log($"[AdsManager] Cloud Sync Enabled: {enableCloudSync}");
+        Debug.Log("=== [AdsManager] ENCRYPTION INFO END ===");
     }
     #endregion
 
