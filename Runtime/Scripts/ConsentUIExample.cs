@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using GoogleMobileAds.Ump.Api;
+using Autech.Admob;
 
 namespace AdmobMediationPackage
 {
@@ -8,6 +9,7 @@ namespace AdmobMediationPackage
     /// Example UI script demonstrating how to use the new consent management features.
     /// This shows best practices for implementing GDPR-compliant ad controls in your game.
     /// IMPORTANT: This script uses AdsManager.Instance for ad operations and VerifyAdmob for configuration/consent.
+    /// Updated for refactored architecture with modular components and async/await.
     /// </summary>
     public class ConsentUIExample : MonoBehaviour
     {

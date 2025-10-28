@@ -73,65 +73,112 @@ A powerful and production-ready AdMob integration package with Unity Ads mediati
 - **Professional Logging Display** - UI text component integration for real-time log viewing
 - **Smart Banner Control** - Automatic banner visibility management with first-time loading detection
 
+## 🏗️ Architecture Overview
+
+The package uses a clean, modular architecture:
+
+- **`AdsManager`** - Main singleton orchestrating all ad operations
+- **`VerifyAdmob`** - MonoBehaviour for scene integration and initial configuration
+- **`AdConfiguration`** - Centralized configuration management
+- **Ad Controllers** - Specialized controllers for each ad type:
+  - `BannerAdController` - Banner ad lifecycle
+  - `InterstitialAdController` - Interstitial ads
+  - `RewardedAdController` - Rewarded ads
+  - `RewardedInterstitialAdController` - Rewarded interstitial ads
+  - `AppOpenAdController` - App open ads
+- **`ConsentManager`** - GDPR/UMP consent handling
+- **`MediationConsentManager`** - Unity Ads mediation consent
+- **`AdPersistenceManager`** - Storage with encryption
+- **`AdsExampleUI`** - Example UI implementation with testing utilities
+
+All components are in the `Autech.Admob` namespace.
+
 ### Professional Debug Logging
 ```csharp
 // Event-based logging system with UI integration
 // Assign a TMP_Text component to debugLogText in AdsExampleUI
 
-// Log messages automatically appear in UI
+// Subscribe to debug log events
+AdsExampleUI.OnDebugLog += (message) => {
+    Debug.Log($"Ads Debug: {message}");
+};
+
+// Trigger debug log events
 AdsExampleUI.OnDebugLog?.Invoke("Custom log message");
 
-// Clear debug log
-AdsExampleUI.Instance.ClearDebugLog();
-
-// Check if detailed logging is enabled
-if (showDetailedLogs)
-{
-    // Log messages will be displayed
-}
+// Check current ad system status
+AdsManager.Instance.LogDebugStatus();
 ```
 
 ### Dynamic Ad Unit ID Configuration
 ```csharp
 // Set platform-specific Ad Unit IDs at runtime
-VerifyAdmob verifyScript = FindObjectOfType<VerifyAdmob>();
-verifyScript.SetAndroidAdIds(
+AdsManager.Instance.SetAndroidAdIds(
     "ca-app-pub-YOUR_ID/banner",
     "ca-app-pub-YOUR_ID/interstitial",
     "ca-app-pub-YOUR_ID/rewarded",
-    "ca-app-pub-YOUR_ID/rewarded_interstitial", 
+    "ca-app-pub-YOUR_ID/rewarded_interstitial",
+    "ca-app-pub-YOUR_ID/app_open"
+);
+
+// Set iOS Ad Unit IDs
+AdsManager.Instance.SetIosAdIds(
+    "ca-app-pub-YOUR_ID/banner",
+    "ca-app-pub-YOUR_ID/interstitial",
+    "ca-app-pub-YOUR_ID/rewarded",
+    "ca-app-pub-YOUR_ID/rewarded_interstitial",
     "ca-app-pub-YOUR_ID/app_open"
 );
 
 // Validate configuration
-verifyScript.ValidateAdIds();
-verifyScript.CheckIfTestAdIds();
+bool isValid = AdsManager.Instance.AreAdIdsValid();
+bool isTestMode = AdsManager.Instance.AreTestAdIds();
+AdsManager.Instance.LogCurrentAdIds();
 ```
 
 ### Comprehensive Testing
 ```csharp
-AdsExampleUI testScript = FindObjectOfType<AdsExampleUI>();
+// Get reference to test UI component
+AdsExampleUI testUI = FindObjectOfType<AdsExampleUI>();
 
 // Test all ad types sequentially
-testScript.TestAllAdsSequentially();
+testUI.TestAllAdsSequentially();
 
 // Test Remove Ads workflow
-testScript.TestRemoveAdsFunctionality();
+testUI.TestRemoveAdsFunctionality();
 
 // Check system status
-testScript.CheckAllAdStatus();
+testUI.CheckAllAdStatus();
+testUI.CheckAdIds();
+
+// Individual ad tests
+testUI.CallInterstitial(2);      // Show interstitial with callbacks
+testUI.CallRewarded(3);           // Show rewarded with full callbacks
+testUI.CallRewardedInterstitial(3); // Show rewarded interstitial
+testUI.CallAppOpen(2);            // Show app open ad
+testUI.ToggleBannerTestCall();    // Toggle banner visibility
 ```
 
 ### Rewarded Ad with Full Callbacks
 ```csharp
+// Show rewarded ad with full callbacks
 AdsManager.Instance.ShowRewarded(
-    (reward) => {
+    onRewarded: (reward) => {
         Debug.Log($"Reward granted: {reward.Amount} {reward.Type}");
-        // Give player reward
+        // Give player reward here
     },
-    () => Debug.Log("Ad completed successfully"),
-    () => Debug.Log("Ad failed to show")
+    onSuccess: () => {
+        Debug.Log("Ad completed successfully");
+    },
+    onFailure: () => {
+        Debug.Log("Ad failed to show");
+    }
 );
+
+// Simplified versions
+AdsManager.Instance.ShowRewarded(); // No callbacks
+AdsManager.Instance.ShowRewarded(OnAdClosed); // Success callback only
+AdsManager.Instance.ShowRewarded(OnAdClosed, OnAdFailed); // Success + failure
 ```
 
 ## 📋 Prerequisites
@@ -252,10 +299,112 @@ Import via `Assets > Import Package > Custom Package...`
 
 ## 🎮 Usage Examples
 
+> **Important**: All code examples require the `Autech.Admob` namespace:
+> ```csharp
+> using Autech.Admob;
+> ```
+
+### Basic Setup
+```csharp
+using Autech.Admob;
+
+// Access the singleton instance
+AdsManager adsManager = AdsManager.Instance;
+
+// Check if ads system is initialized
+if (adsManager.IsInitialized)
+{
+    Debug.Log("Ads system is ready!");
+}
+```
+
+### Interstitial Ads
+```csharp
+// Show interstitial with callbacks
+AdsManager.Instance.ShowInterstitial(
+    onSuccess: () => {
+        Debug.Log("Interstitial closed");
+        // Continue game flow
+    },
+    onFailure: () => {
+        Debug.Log("Interstitial failed to show");
+        // Continue without ad
+    }
+);
+
+// Simplified versions
+AdsManager.Instance.ShowInterstitial(); // No callbacks
+AdsManager.Instance.ShowInterstitial(OnAdClosed); // Success callback only
+
+// Check if ready
+if (AdsManager.Instance.IsInterstitialReady())
+{
+    // Show the ad
+}
+```
+
+### Rewarded Interstitial Ads
+```csharp
+// Show rewarded interstitial with full callbacks
+AdsManager.Instance.ShowRewardedInterstitial(
+    onRewarded: (reward) => {
+        Debug.Log($"Reward: {reward.Amount} {reward.Type}");
+        // Grant reward
+    },
+    onSuccess: () => Debug.Log("Ad closed"),
+    onFailure: () => Debug.Log("Ad failed")
+);
+
+// Check if ready
+bool isReady = AdsManager.Instance.IsRewardedInterstitialReady();
+```
+
+### App Open Ads
+```csharp
+// Show app open ad
+AdsManager.Instance.ShowAppOpenAd(
+    onSuccess: () => Debug.Log("App open ad closed"),
+    onFailure: () => Debug.Log("App open ad failed")
+);
+
+// Enable/disable auto-show on app resume
+AdsManager.Instance.AutoShowAppOpenAds = true;
+
+// Set cooldown time (seconds)
+AdsManager.Instance.AppOpenCooldownTime = 4f;
+
+// Check availability
+bool isAvailable = AdsManager.Instance.IsAppOpenAdAvailable();
+```
+
+### Consent Management
+```csharp
+// Show privacy options form (GDPR)
+AdsManager.Instance.ShowPrivacyOptionsForm();
+
+// Check if privacy options button should be shown
+if (AdsManager.Instance.ShouldShowPrivacyOptionsButton())
+{
+    // Show privacy options button in settings
+}
+
+// Get consent status
+ConsentStatus status = AdsManager.Instance.GetCurrentConsentStatus();
+bool canRequestAds = AdsManager.Instance.CanUserRequestAds();
+
+// Refresh mediation consent
+AdsManager.Instance.RefreshMediationConsent();
+```
+
 ### Remove Ads System
 ```csharp
+using Autech.Admob;
+
 // Enable Remove Ads (disables Banner, Interstitial, App Open)
 AdsManager.Instance.RemoveAds = true;
+
+// Disable Remove Ads (re-enable ads)
+AdsManager.Instance.RemoveAds = false;
 
 // Check Remove Ads status
 if (AdsManager.Instance.RemoveAds)
@@ -263,58 +412,206 @@ if (AdsManager.Instance.RemoveAds)
     // Show premium UI, hide ad buttons
 }
 
+// Subscribe to Remove Ads changes
+AdsManager.OnRemoveAdsChanged += (isEnabled) => {
+    Debug.Log($"Remove Ads is now: {(isEnabled ? "Enabled" : "Disabled")}");
+    // Update UI accordingly
+};
+
 // IAP Integration
 public void OnRemoveAdsPurchased()
 {
-    VerifyAdmob.Instance.PurchaseRemoveAds();
+    AdsManager.Instance.RemoveAds = true;
     // Automatically saves to persistent storage
 }
+
+// Restore purchases
+public void OnRestorePurchases()
+{
+    AdsManager.Instance.ForceLoadFromStorage();
+}
+
+// Check if data exists in storage
+bool hasPurchase = AdsManager.Instance.HasRemoveAdsDataInStorage();
+```
+
+### Persistence & Storage
+```csharp
+// Force load Remove Ads status from storage
+AdsManager.Instance.ForceLoadFromStorage();
+
+// Force save current Remove Ads status
+AdsManager.Instance.ForceSaveToStorage();
+
+// Clear all Remove Ads data
+AdsManager.Instance.ClearRemoveAdsData();
+
+// Check if Remove Ads data exists in storage
+bool hasData = AdsManager.Instance.HasRemoveAdsDataInStorage();
+
+// Legacy encryption migration (if upgrading from old version)
+if (AdsManager.Instance.NeedsLegacyMigration())
+{
+    bool migrated = AdsManager.Instance.MigrateLegacyEncryption();
+    Debug.Log($"Migration success: {migrated}");
+}
+
+// Debug encryption information
+AdsManager.Instance.LogEncryptionInfo();
+
+// Subscribe to storage events
+AdsManager.OnRemoveAdsLoadedFromStorage += (wasEnabled) => {
+    Debug.Log($"Loaded from storage: Remove Ads = {wasEnabled}");
+};
 ```
 
 ### Advanced Banner Management
 ```csharp
-// Adaptive banner with position cycling
+using Autech.Admob;
+
+// Load and show banner
 AdsManager.Instance.LoadBanner();
 AdsManager.Instance.ShowBanner(true);
 
-// Runtime configuration
+// Hide banner
+AdsManager.Instance.ShowBanner(false);
+
+// Change banner position
 AdsManager.Instance.SetBannerPosition(BannerPosition.Top);
-AdsManager.Instance.EnableCollapsibleBanners(true);
+AdsManager.Instance.SetBannerPosition(BannerPosition.Bottom);
+
+// Change banner size
+AdsManager.Instance.SetBannerSize(BannerSize.MediumRectangle);
+AdsManager.Instance.SetBannerSize(BannerSize.Leaderboard);
+
+// Enable adaptive banners
 AdsManager.Instance.EnableAdaptiveBanners(true);
+
+// Enable collapsible banners
+AdsManager.Instance.EnableCollapsibleBanners = true;
+
+// Check banner status
+bool isLoaded = AdsManager.Instance.IsBannerLoaded();
+bool isVisible = AdsManager.Instance.IsBannerVisible();
+Vector2 bannerSize = AdsManager.Instance.GetBannerSize();
+BannerPosition currentPos = AdsManager.Instance.CurrentBannerPosition;
 ```
 
 ### UI Integration & Button Management
 ```csharp
-// Buttons automatically update based on ad availability
-// No code needed - handled automatically by AdsExampleUI
+using Autech.Admob;
 
-// Check if buttons are interactable
-bool canShowRewarded = showRewardedBtn.interactable;
-bool canShowInterstitial = showInterstitialBtn.interactable;
-bool canToggleBanner = toggleBannerBtn.interactable;
+// Buttons automatically update based on ad availability in AdsExampleUI
+// The UpdateButtonStates() method handles this automatically
 
-// Remove Ads button color indicates status
-// Red = Remove Ads enabled, Green = Remove Ads disabled
-Image removeAdsButtonImage = toggleRemoveAdsBtn.GetComponent<Image>();
-Color currentStatus = removeAdsButtonImage.color;
+// Check ad availability for UI updates
+bool canShowRewarded = AdsManager.Instance.IsRewardedReady();
+bool canShowInterstitial = AdsManager.Instance.IsInterstitialReady();
+bool canToggleBanner = AdsManager.Instance.IsBannerLoaded();
+bool canShowAppOpen = AdsManager.Instance.IsAppOpenAdAvailable();
+bool canShowRewardedInterstitial = AdsManager.Instance.IsRewardedInterstitialReady();
+
+// Subscribe to Remove Ads events for UI updates
+AdsManager.OnRemoveAdsChanged += (isEnabled) => {
+    // Update button colors, visibility, etc.
+    removeAdsButton.GetComponent<Image>().color = isEnabled ? Color.red : Color.green;
+};
+
+// Check if any ad is currently showing (to disable UI)
+bool isShowingAd = AdsManager.Instance.IsShowingAd;
 ```
 
 ### Smart Banner Visibility Control
 ```csharp
+using Autech.Admob;
+
 // Banner automatically shows/hides based on first-time loading and settings
 // Configure in VerifyAdmob Inspector:
 // - showBannerOnStart = true/false
 // - removeAds = true/false
 
-// Manual control after initialization
-AdsManager.Instance.SetInitialBannerVisibility(true);  // Show banner
-AdsManager.Instance.SetInitialBannerVisibility(false); // Hide banner
+// Manual banner visibility control
+AdsManager.Instance.ShowBanner(true);  // Show banner
+AdsManager.Instance.ShowBanner(false); // Hide banner
+
+// Set initial banner visibility (same as ShowBanner)
+AdsManager.Instance.SetInitialBannerVisibility(true);
 
 // Check first-time loading status
 if (AdsManager.Instance.IsFirstTimeLoading)
 {
-    Debug.Log("Still in first-time loading phase");
+    Debug.Log("Still in first-time loading phase - waiting for ads to initialize");
 }
+
+// Check if ads system is ready
+if (AdsManager.Instance.IsInitialized)
+{
+    Debug.Log("Ads system fully initialized");
+}
+```
+
+### Configuration with VerifyAdmob
+```csharp
+// VerifyAdmob is a MonoBehaviour that configures AdsManager
+// Add it to a GameObject in your scene
+
+// Access VerifyAdmob methods
+VerifyAdmob verifyAdmob = FindObjectOfType<VerifyAdmob>();
+
+// Set Remove Ads
+verifyAdmob.SetRemoveAds(true);
+
+// Configure banner
+verifyAdmob.SetBannerPosition(BannerPosition.Bottom);
+verifyAdmob.SetBannerSize(BannerSize.Adaptive);
+verifyAdmob.SetAdaptiveBanners(true);
+verifyAdmob.SetCollapsibleBanners(false);
+
+// Configure app open ads
+verifyAdmob.SetAutoShowAppOpen(true);
+verifyAdmob.SetAppOpenCooldown(4f);
+
+// Configure test mode
+verifyAdmob.SetTestAds(true);
+
+// Set Ad Unit IDs at runtime
+verifyAdmob.SetAndroidAdIds(
+    "ca-app-pub-YOUR_ID/banner",
+    "ca-app-pub-YOUR_ID/interstitial",
+    "ca-app-pub-YOUR_ID/rewarded",
+    "ca-app-pub-YOUR_ID/rewarded_interstitial",
+    "ca-app-pub-YOUR_ID/app_open"
+);
+
+verifyAdmob.SetIosAdIds(
+    "ca-app-pub-YOUR_ID/banner",
+    "ca-app-pub-YOUR_ID/interstitial",
+    "ca-app-pub-YOUR_ID/rewarded",
+    "ca-app-pub-YOUR_ID/rewarded_interstitial",
+    "ca-app-pub-YOUR_ID/app_open"
+);
+
+// Validation methods
+verifyAdmob.ValidateAdIds();
+verifyAdmob.CheckIfTestAdIds();
+verifyAdmob.LogCurrentAdIds();
+
+// Status checks
+bool isInitialized = verifyAdmob.IsAdsManagerInitialized();
+bool isRemoveAdsEnabled = verifyAdmob.IsRemoveAdsEnabled();
+bool isShowingAd = verifyAdmob.IsAnyAdShowing();
+
+// Consent methods
+verifyAdmob.ShowPrivacyOptionsForm();
+verifyAdmob.RefreshMediationConsent();
+verifyAdmob.LogConsentStatus();
+
+// Persistence methods
+verifyAdmob.PurchaseRemoveAds();
+verifyAdmob.RestorePurchases();
+verifyAdmob.TestForceLoadFromStorage();
+verifyAdmob.TestForceSaveToStorage();
+verifyAdmob.TestClearRemoveAdsData();
 ```
 
 ## 📊 Version History
@@ -368,14 +665,24 @@ Right-click on any script component for instant testing:
 
 ### Automated Testing
 ```csharp
-// Sequential ad testing
-AdsExampleUI.Instance.TestAllAdsSequentially();
+// Get reference to test UI
+AdsExampleUI testUI = FindObjectOfType<AdsExampleUI>();
 
-// Remove Ads workflow testing  
-AdsExampleUI.Instance.TestRemoveAdsFunctionality();
+// Sequential ad testing (runs all ad types in order)
+testUI.TestAllAdsSequentially();
+
+// Remove Ads workflow testing
+testUI.TestRemoveAdsFunctionality();
 
 // Comprehensive status checking
-AdsExampleUI.Instance.CheckAllAdStatus();
+testUI.CheckAllAdStatus();
+testUI.CheckAdIds();
+
+// Clear debug log
+testUI.ClearDebugLog();
+
+// Individual ad status checks via AdsManager
+AdsManager.Instance.LogDebugStatus();
 ```
 
 ## 🚀 Roadmap

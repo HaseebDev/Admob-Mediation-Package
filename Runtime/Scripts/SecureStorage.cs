@@ -5,16 +5,36 @@ using System.Text;
 using UnityEngine;
 
 /// <summary>
-/// Secure storage utility using AES-256-GCM encryption with HMAC integrity verification.
+/// Secure storage utility using AES-256-CBC encryption with HMAC integrity verification.
 /// Implements defense-in-depth security principles for sensitive data protection.
 ///
+/// ⚠️ CRITICAL DATA PERSISTENCE WARNING:
+/// Device identifier (SystemInfo.deviceUniqueIdentifier) is NOT stable across:
+/// - App reinstalls
+/// - OS reinstalls
+/// - Device resets/factory resets
+/// - Some OS updates
+/// Users will LOSE access to encrypted data in these scenarios!
+///
+/// RECOMMENDED SOLUTIONS:
+/// 1. Server-side storage for critical data (RemoveAds purchases, etc.)
+/// 2. Cloud save systems (PlayFab, Firebase, etc.)
+/// 3. Receipt validation for IAP (restore purchases)
+/// 4. Custom key management (store key securely, not derived from device ID)
+///
+/// ENCRYPTION MODE NOTE:
+/// - Uses CBC (Cipher Block Chaining) mode, NOT GCM (Galois/Counter Mode)
+/// - CBC + HMAC-SHA256 provides authenticated encryption (Encrypt-then-MAC pattern)
+/// - CBC is more widely supported across .NET platforms than GCM
+/// - HMAC provides the same tamper-detection benefits as GCM's built-in authentication
+///
 /// Security Features:
-/// - AES-256-CBC encryption with random IV per encryption
+/// - AES-256-CBC encryption with random IV per encryption (NOT GCM)
 /// - PBKDF2 key derivation with 100,000 iterations (OWASP 2023 standard)
 /// - HMAC-SHA256 integrity verification to prevent tampering
 /// - Input validation on all public methods
 /// - Secure error handling without information leakage
-/// - Device-bound encryption keys
+/// - Device-bound encryption keys (with stability limitations - see warning above)
 /// - Version tagging for future migration support
 /// </summary>
 public static class SecureStorage
@@ -147,16 +167,18 @@ public static class SecureStorage
             Debug.Log($"[SecureStorage] Successfully saved encrypted value for key: {key}");
             return true;
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
-            // Don't expose cryptographic details
+            // Don't expose cryptographic details to users, but log for debugging
             Debug.LogError("[SecureStorage] Cryptographic operation failed");
+            Debug.LogException(ex);
             return false;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             // Generic error without details to prevent information leakage
             Debug.LogError("[SecureStorage] Save operation failed");
+            Debug.LogException(ex);
             return false;
         }
     }
@@ -220,14 +242,16 @@ public static class SecureStorage
             Debug.Log($"[SecureStorage] Successfully loaded encrypted value for key: {key}");
             return result;
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
             Debug.LogWarning("[SecureStorage] Decryption failed - data may be corrupted or tampered");
+            Debug.LogException(ex);
             return defaultValue;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             Debug.LogWarning("[SecureStorage] Load operation failed - using default value");
+            Debug.LogException(ex);
             return defaultValue;
         }
     }
@@ -285,9 +309,10 @@ public static class SecureStorage
                 return false;
             }
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             Debug.LogError("[SecureStorage] Migration failed due to error - old data preserved");
+            Debug.LogException(ex);
             return false;
         }
     }
@@ -409,19 +434,22 @@ public static class SecureStorage
                 }
             }
         }
-        catch (FormatException)
+        catch (FormatException ex)
         {
             Debug.LogWarning("[SecureStorage] Invalid data format");
+            Debug.LogException(ex);
             return null;
         }
-        catch (CryptographicException)
+        catch (CryptographicException ex)
         {
             Debug.LogWarning("[SecureStorage] Decryption failed");
+            Debug.LogException(ex);
             return null;
         }
-        catch (Exception)
+        catch (Exception ex)
         {
             Debug.LogWarning("[SecureStorage] Verification failed");
+            Debug.LogException(ex);
             return null;
         }
     }
@@ -467,9 +495,9 @@ public static class SecureStorage
             string decrypted = Encoding.UTF8.GetString(data);
             return bool.Parse(decrypted);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            throw new CryptographicException("XOR decryption failed");
+            throw new CryptographicException("XOR decryption failed", ex);
         }
     }
 

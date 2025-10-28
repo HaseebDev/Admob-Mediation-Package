@@ -1,8 +1,9 @@
 using System;
-using GoogleMobileAds.Api;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using GoogleMobileAds.Api;
+using Autech.Admob;
 
 public class AdsExampleUI : MonoBehaviour
 {
