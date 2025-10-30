@@ -24,9 +24,11 @@ namespace Autech.Admob
         public bool TagForUnderAgeOfConsent { get; set; } = false;
 
         public event Action<bool> OnConsentReady;
+        public event Action<string> OnConsentError;
 
         private bool isConsentInitialized = false;
         private bool developerBypassEnabled = false;
+        private bool wasAbleToRequestAds = false;
 
         /// <summary>
         /// Checks if debug bypass is allowed based on build configuration.
@@ -106,7 +108,8 @@ namespace Autech.Admob
                 isConsentInitialized = true;
             }
 
-            return ConsentInformation.CanRequestAds();
+            wasAbleToRequestAds = ConsentInformation.CanRequestAds();
+            return wasAbleToRequestAds;
         }
 
         private ConsentRequestParameters CreateConsentRequestParameters()
@@ -288,7 +291,6 @@ namespace Autech.Admob
                 return;
             }
 
-            // GDPR Compliance: Strengthened debug bypass check
             if (IsDevelopmentBypassActive())
             {
                 Debug.LogWarning("[ConsentManager] DEVELOPMENT MODE: Bypassing error. DISABLE IN PRODUCTION!");
@@ -300,6 +302,7 @@ namespace Autech.Admob
             {
                 Debug.LogError("[ConsentManager] PRODUCTION ERROR: Cannot recover");
                 Debug.LogError("[ConsentManager] User must provide valid consent to show ads");
+                OnConsentError?.Invoke(error.Message);
                 tcs.TrySetResult(false);
             }
         }
@@ -348,10 +351,16 @@ namespace Autech.Admob
                     if (formError != null)
                     {
                         Debug.LogError($"[ConsentManager] Privacy options form error: {formError.Message}");
+                        OnConsentError?.Invoke(formError.Message);
                     }
                     else
                     {
                         Debug.Log("[ConsentManager] Privacy options form completed");
+                        LogDetailedConsentStatus();
+                        
+                        bool canRequestAds = ConsentInformation.CanRequestAds();
+                        wasAbleToRequestAds = canRequestAds;
+                        OnConsentReady?.Invoke(canRequestAds);
                     }
                 });
             }
@@ -376,6 +385,72 @@ namespace Autech.Admob
         public bool CanUserRequestAds()
         {
             return ConsentInformation.CanRequestAds();
+        }
+
+        public void CheckConsentStatusOnResume()
+        {
+            if (!isConsentInitialized)
+            {
+                return;
+            }
+
+            bool currentCanRequestAds = ConsentInformation.CanRequestAds();
+            
+            if (currentCanRequestAds != wasAbleToRequestAds)
+            {
+                Debug.Log($"[ConsentManager] Consent status changed: {wasAbleToRequestAds} -> {currentCanRequestAds}");
+                wasAbleToRequestAds = currentCanRequestAds;
+                OnConsentReady?.Invoke(currentCanRequestAds);
+                
+                if (!currentCanRequestAds)
+                {
+                    Debug.LogWarning("[ConsentManager] User revoked consent - ads should be stopped");
+                }
+            }
+        }
+
+        public string GetTCFConsentString()
+        {
+            return PlayerPrefs.GetString("IABTCF_TCString", "");
+        }
+
+        public bool HasConsentForPurpose(int purposeId)
+        {
+            string purposeConsents = PlayerPrefs.GetString("IABTCF_PurposeConsents", "");
+            if (purposeId <= 0 || purposeId > purposeConsents.Length)
+                return false;
+            return purposeConsents[purposeId - 1] == '1';
+        }
+
+        public string GetConsentType()
+        {
+            if (!isConsentInitialized)
+            {
+                return "Unknown";
+            }
+
+            ConsentStatus status = ConsentInformation.ConsentStatus;
+            
+            if (status == ConsentStatus.Obtained)
+            {
+                string purposeConsents = PlayerPrefs.GetString("IABTCF_PurposeConsents", "");
+                
+                if (!string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length >= 4)
+                {
+                    bool hasPersonalizationConsent = purposeConsents[2] == '1';
+                    return hasPersonalizationConsent ? "Personalized" : "NonPersonalized";
+                }
+                else
+                {
+                    return "NonPersonalized";
+                }
+            }
+            else if (status == ConsentStatus.NotRequired)
+            {
+                return "NotRequired";
+            }
+            
+            return "Unknown";
         }
     }
 }

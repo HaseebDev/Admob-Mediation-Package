@@ -160,7 +160,6 @@ namespace Autech.Admob
 
         // Components
         private AdConfiguration config;
-        private ConsentManager consentManager;
         private BannerAdController bannerController;
         private InterstitialAdController interstitialController;
         private RewardedAdController rewardedController;
@@ -176,6 +175,9 @@ namespace Autech.Admob
         // Events
         public static Action<bool> OnRemoveAdsChanged;
         public static Action<bool> OnRemoveAdsLoadedFromStorage;
+
+        // Public Properties - Components
+        public ConsentManager consentManager { get; private set; }
 
         // Public Properties - Configuration
         public bool IsInitialized => isInitialized;
@@ -424,6 +426,7 @@ namespace Autech.Admob
 
             // Subscribe to consent events
             consentManager.OnConsentReady += OnConsentReady;
+            consentManager.OnConsentError += OnConsentError;
 
             Debug.Log($"[AdsManager] Components initialized. RemoveAds: {config.RemoveAds}");
         }
@@ -480,6 +483,11 @@ namespace Autech.Admob
             {
                 Debug.LogWarning("[AdsManager] Cannot request ads - initialization aborted");
             }
+        }
+
+        private void OnConsentError(string errorMessage)
+        {
+            Debug.LogError($"[AdsManager] Consent error occurred: {errorMessage}");
         }
 
         private void InitializeAdMob()
@@ -853,6 +861,14 @@ namespace Autech.Admob
 
         #region Consent
         public void ShowPrivacyOptionsForm() => consentManager.ShowPrivacyOptionsForm();
+
+        public string GetTCFConsentString() => consentManager?.GetTCFConsentString() ?? "";
+
+        public bool HasConsentForPurpose(int purposeId) => consentManager?.HasConsentForPurpose(purposeId) ?? false;
+
+        public string GetConsentType() => consentManager?.GetConsentType() ?? "Unknown";
+
+        public void CheckConsentStatus() => consentManager?.CheckConsentStatusOnResume();
         public bool ShouldShowPrivacyOptionsButton() => consentManager.ShouldShowPrivacyOptionsButton();
         public ConsentStatus GetCurrentConsentStatus() => consentManager.GetCurrentConsentStatus();
         public bool CanUserRequestAds() => consentManager.CanUserRequestAds();
@@ -889,6 +905,7 @@ namespace Autech.Admob
             if (consentManager != null)
             {
                 consentManager.OnConsentReady -= OnConsentReady;
+                consentManager.OnConsentError -= OnConsentError;
             }
 
             if (persistenceManager != null)
@@ -907,6 +924,15 @@ namespace Autech.Admob
             if (instance == this)
             {
                 instance = null;
+            }
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (!pauseStatus && isInitialized && consentManager != null)
+            {
+                Debug.Log("[AdsManager] App resumed - checking consent status");
+                consentManager.CheckConsentStatusOnResume();
             }
         }
 
