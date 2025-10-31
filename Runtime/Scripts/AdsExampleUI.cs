@@ -1,8 +1,9 @@
 using System;
-using GoogleMobileAds.Api;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
+using GoogleMobileAds.Api;
+using Autech.Admob;
 
 public class AdsExampleUI : MonoBehaviour
 {
@@ -10,6 +11,7 @@ public class AdsExampleUI : MonoBehaviour
     public Button showInterstitialBtn;
     public Button toggleBannerBtn;
     public Button toggleRemoveAdsBtn;
+    public Button privacyOptionsBtn;
 
     [Header("Debug Logging")]
     public TMP_Text debugLogText;
@@ -20,6 +22,17 @@ public class AdsExampleUI : MonoBehaviour
     [Header("Test Configuration")]
     [SerializeField] private bool showDetailedLogs = true;
     [SerializeField] private BannerPosition testBannerPosition = BannerPosition.Bottom;
+    
+    [Header("Privacy Options Display")]
+    [Tooltip("How to display the Privacy Options button when not required")]
+    [SerializeField] private PrivacyButtonDisplayMode privacyButtonMode = PrivacyButtonDisplayMode.DisabledWhenNotRequired;
+    
+    public enum PrivacyButtonDisplayMode
+    {
+        AlwaysVisible,              // Always show button, enable/disable based on requirement (Google recommendation)
+        DisabledWhenNotRequired,    // Show button but grey out when not required (current default)
+        HideWhenNotRequired         // Completely hide button when not required (minimum compliance)
+    }
 
     private string textLog = "ADMOB DEBUG LOG: \n";
 
@@ -33,7 +46,13 @@ public class AdsExampleUI : MonoBehaviour
         showInterstitialBtn.onClick.AddListener(() => CallInterstitial(2));
         toggleBannerBtn.onClick.AddListener(ToggleBannerTestCall);
         toggleRemoveAdsBtn.onClick.AddListener(TestToggleRemoveAds);
+        
+        if (privacyOptionsBtn != null)
+            privacyOptionsBtn.onClick.AddListener(ShowPrivacyOptions);
+            
         InvokeRepeating(nameof(UpdateButtonStates), 0f, 1f);
+        
+        SubscribeToConsentEvents();
     }
 
     private void OnEnable()
@@ -44,6 +63,7 @@ public class AdsExampleUI : MonoBehaviour
     private void OnDisable()
     {
         AdsExampleUI.OnDebugLog -= HandleDebugLog;
+        UnsubscribeFromConsentEvents();
     }
 
     private void HandleDebugLog(string msg)
@@ -78,6 +98,32 @@ public class AdsExampleUI : MonoBehaviour
             else
             {
                 image.color = Color.green;
+            }
+        }
+        
+        if (privacyOptionsBtn != null)
+        {
+            bool isRequired = AdsManager.Instance.ShouldShowPrivacyOptionsButton();
+            
+            switch (privacyButtonMode)
+            {
+                case PrivacyButtonDisplayMode.AlwaysVisible:
+                    // Always show and enable button (best practice)
+                    privacyOptionsBtn.gameObject.SetActive(true);
+                    privacyOptionsBtn.interactable = true;
+                    break;
+                    
+                case PrivacyButtonDisplayMode.DisabledWhenNotRequired:
+                    // Show button but disable when not required (current behavior)
+                    privacyOptionsBtn.gameObject.SetActive(true);
+                    privacyOptionsBtn.interactable = isRequired;
+                    break;
+                    
+                case PrivacyButtonDisplayMode.HideWhenNotRequired:
+                    // Completely hide button when not required (minimum compliance)
+                    privacyOptionsBtn.gameObject.SetActive(isRequired);
+                    privacyOptionsBtn.interactable = isRequired;
+                    break;
             }
         }
     }
@@ -462,6 +508,105 @@ public class AdsExampleUI : MonoBehaviour
 
     [ContextMenu("Check All Status")]
     private void ContextCheckStatus() => CheckAllAdStatus();
+    #endregion
+
+    #region Consent & Privacy Options (NEW)
+    private void SubscribeToConsentEvents()
+    {
+        if (AdsManager.Instance?.consentManager != null)
+        {
+            AdsManager.Instance.consentManager.OnConsentReady += OnConsentStatusChanged;
+            AdsManager.Instance.consentManager.OnConsentError += OnConsentError;
+        }
+    }
+
+    private void UnsubscribeFromConsentEvents()
+    {
+        if (AdsManager.Instance?.consentManager != null)
+        {
+            AdsManager.Instance.consentManager.OnConsentReady -= OnConsentStatusChanged;
+            AdsManager.Instance.consentManager.OnConsentError -= OnConsentError;
+        }
+    }
+
+    private void OnConsentStatusChanged(bool canRequestAds)
+    {
+        if (canRequestAds)
+        {
+            LogTest("✅ Consent Status: CAN REQUEST ADS");
+        }
+        else
+        {
+            LogTest("❌ Consent Status: CANNOT REQUEST ADS (User revoked or denied)");
+        }
+        
+        LogConsentDetails();
+    }
+
+    private void OnConsentError(string errorMessage)
+    {
+        LogTest($"⚠️ CONSENT ERROR: {errorMessage}");
+    }
+
+    public void ShowPrivacyOptions()
+    {
+        LogTest("Opening Privacy Options Form...");
+        
+        if (AdsManager.Instance.ShouldShowPrivacyOptionsButton())
+        {
+            AdsManager.Instance.ShowPrivacyOptionsForm();
+        }
+        else
+        {
+            LogTest("Privacy Options not required (user not in EEA or already declined)");
+        }
+    }
+
+    public void LogConsentDetails()
+    {
+        LogTest("=== CONSENT STATUS ===");
+        LogTest($"Can Request Ads: {AdsManager.Instance.CanUserRequestAds()}");
+        LogTest($"Consent Status: {AdsManager.Instance.GetCurrentConsentStatus()}");
+        
+        string consentType = AdsManager.Instance.GetConsentType();
+        LogTest($"Consent Type: {consentType}");
+        
+        string tcfString = AdsManager.Instance.GetTCFConsentString();
+        if (!string.IsNullOrEmpty(tcfString))
+        {
+            LogTest($"TCF String: {tcfString.Substring(0, Math.Min(30, tcfString.Length))}...");
+            
+            bool hasStorage = AdsManager.Instance.HasConsentForPurpose(1);
+            bool hasPersonalization = AdsManager.Instance.HasConsentForPurpose(3);
+            bool hasAdSelection = AdsManager.Instance.HasConsentForPurpose(4);
+            bool hasAnalytics = AdsManager.Instance.HasConsentForPurpose(7);
+            
+            LogTest($"TCF Purposes:");
+            LogTest($"  - Storage (1): {hasStorage}");
+            LogTest($"  - Personalization (3): {hasPersonalization}");
+            LogTest($"  - Ad Selection (4): {hasAdSelection}");
+            LogTest($"  - Analytics (7): {hasAnalytics}");
+        }
+        else
+        {
+            LogTest("TCF String: Not available");
+        }
+        
+        LogTest("======================");
+    }
+
+    [ContextMenu("Show Privacy Options")]
+    private void ContextShowPrivacyOptions() => ShowPrivacyOptions();
+
+    [ContextMenu("Log Consent Details")]
+    private void ContextLogConsentDetails() => LogConsentDetails();
+
+    [ContextMenu("Check Consent Status")]
+    private void ContextCheckConsentStatus()
+    {
+        AdsManager.Instance.CheckConsentStatus();
+        LogTest("Manually triggered consent status check");
+    }
     #endregion
 
 }

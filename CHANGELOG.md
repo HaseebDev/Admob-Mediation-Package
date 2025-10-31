@@ -5,6 +5,39 @@ All notable changes to the Autech AdMob Mediation Unity Ads package will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.0] - 2025-10-31
+
+### 🚀 Added
+- **Thread-Safe Orchestration**
+  - Captures Unity's synchronization context at startup for safe async callbacks
+  - Auto-instantiates `AdsManager` when no scene instance exists
+  - Concurrency guards (`TrySetAdShowing`) prevent overlapping fullscreen ads
+- **Secure Storage Stack**
+  - New `SecureStorage` module using AES-256-CBC + HMAC integrity verification
+  - `AdPersistenceManager` now generates device-specific keys with graceful fallbacks
+  - Legacy XOR migration helpers expose explicit upgrade paths
+- **Consent → Mediation Bridge**
+  - `MediationConsentManager` mirrors Google UMP decisions directly into Unity Ads metadata
+  - One-call refresh helper keeps mediation networks aligned after consent changes
+- **Expanded Tooling & Samples**
+  - Documentation refresh across README, INSTALL, and consent guides
+  - Context-menu shortcuts and sample UIs updated for new APIs and debugging hooks
+  - Editor bootstrapper prompts for one-click Google dependency installation
+
+### 🔧 Changed
+- Distribution now targets Package Manager Git URL installs instead of `.unitypackage` drops
+- README highlights the new architecture, secure persistence, and consent pipeline
+- Installation instructions streamlined around GMA/EDM prerequisites and Git imports
+- Version history reorganized to surface active development (HEAD) and historical releases
+
+### 🛠️ Fixed
+- Race conditions when multiple ads attempted to show concurrently
+- Controllers now cancel pending retries before destroying ad instances to avoid leaks
+- Consent flow no longer skips mediation metadata when debugging flags are enabled
+- Remove Ads persistence logs warnings when developers rotate encryption keys post-release
+
+---
+
 ## [2.0.2] - 2024-12-27
 
 ### 🚀 Added

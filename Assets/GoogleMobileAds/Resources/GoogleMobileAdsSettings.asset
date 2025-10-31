@@ -15,8 +15,10 @@ MonoBehaviour:
   adMobAndroidAppId: 
   adMobIOSAppId: 
   enableKotlinXCoroutinesPackagingOption: 1
-  optimizeInitialization: 0
-  optimizeAdLoading: 0
-  userTrackingUsageDescription: 
-  validateGradleDependencies: 0
+  enableGradleBuildPreProcessor: 1
+  disableOptimizeInitialization: 0
+  disableOptimizeAdLoading: 0
+  userTrackingUsageDescription: 'We and our partners use cookies and similar technologies
+    to:  Personalize ads and content based on your interests. Measure ad and content
+    performance.'
   userLanguage: en

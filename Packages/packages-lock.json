@@ -18,23 +18,23 @@
       "hash": "38fecf55e4fd94ccfe58a92ed8ad1a529ba1694e"
     },
     "com.google.ads.mobile": {
-      "version": "10.4.2",
+      "version": "https://github.com/googleads/googleads-mobile-unity.git?path=packages/com.google.ads.mobile#v10.4.2",
       "depth": 0,
-      "source": "registry",
+      "source": "git",
       "dependencies": {
         "com.google.external-dependency-manager": "1.2.186",
         "com.unity.modules.androidjni": "1.0.0"
       },
-      "url": "https://package.openupm.com"
+      "hash": "0f0ef22a4a4b1894951539831f9e3947ff634a75"
     },
     "com.google.ads.mobile.mediation.unity": {
-      "version": "3.15.0",
+      "version": "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.15.0",
       "depth": 0,
-      "source": "registry",
+      "source": "git",
       "dependencies": {
         "com.google.ads.mobile": "10.0.0"
       },
-      "url": "https://package.openupm.com"
+      "hash": "d054565cf28099636ed0f6772a5da56b7ea319e3"
     },
     "com.google.external-dependency-manager": {
       "version": "1.2.186",
@@ -194,6 +194,15 @@
         "com.unity.ext.nunit": "1.0.6"
       },
       "url": "https://packages.unity.com"
+    },
+    "com.unity.ide.trae": {
+      "version": "https://github.com/dennyguotf/com.unity.ide.trae.git",
+      "depth": 0,
+      "source": "git",
+      "dependencies": {
+        "com.unity.test-framework": "1.1.9"
+      },
+      "hash": "0231d4b833feb294da5fc8fa7e04df85bd73773f"
     },
     "com.unity.ide.visualstudio": {
       "version": "2.0.22",
