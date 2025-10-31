@@ -41,7 +41,9 @@ namespace Autech.Admob
                 return;
             }
 
+            bool shouldRestoreVisibility = isBannerVisible;
             DestroyBanner();
+            isBannerVisible = shouldRestoreVisibility;
 
             AdSize adSize = GetAdSize();
             Debug.Log($"[BannerAdController] Creating banner with size: {adSize.Width}x{adSize.Height}");

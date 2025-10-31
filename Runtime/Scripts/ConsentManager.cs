@@ -70,6 +70,8 @@ namespace Autech.Admob
             if (!AlwaysRequestConsentUpdate)
             {
                 Debug.LogWarning("[ConsentManager] Consent update disabled - NOT recommended by Google");
+                OnConsentReady?.Invoke(true);
+                isConsentInitialized = true;
                 return true; // Skip consent
             }
 
