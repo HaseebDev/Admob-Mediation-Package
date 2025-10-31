@@ -106,7 +106,8 @@ namespace Autech.Admob
 #elif UNITY_IOS
             return iosId;
 #else
-            return ""; // Editor or unsupported platform
+            // Unity Editor: Use Android test IDs for testing
+            return androidId;
 #endif
         }
 
