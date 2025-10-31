@@ -20,7 +20,7 @@ public class VerifyAdmob : MonoBehaviour
     [SerializeField] private float appOpenCooldownTime = 4f;
 
     [Header("Banner Configuration")]
-    [SerializeField] private bool useAdaptiveBanners = true;
+    [SerializeField] private bool useAdaptiveBanners = false;
     [SerializeField] private bool enableCollapsibleBanners = false;
     [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
 

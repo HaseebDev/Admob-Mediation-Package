@@ -95,7 +95,7 @@ namespace Autech.Admob
         public bool RemoveAds { get; set; } = false;
 
         // Banner Settings
-        public bool UseAdaptiveBanners { get; set; } = true;
+        public bool UseAdaptiveBanners { get; set; } = false;
         public bool EnableCollapsibleBanners { get; set; } = false;
         public BannerSize PreferredBannerSize { get; set; } = BannerSize.Banner;
 
