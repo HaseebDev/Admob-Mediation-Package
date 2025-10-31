@@ -66,6 +66,7 @@ public class VerifyAdmob : MonoBehaviour
         try
         {
             var manager = AdsManager.Instance;
+            removeAds = manager.RemoveAds;
             var settings = ApplyAllSettings(manager);
 
             manager.VerifyHit();

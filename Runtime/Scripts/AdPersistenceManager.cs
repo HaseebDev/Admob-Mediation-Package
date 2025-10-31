@@ -206,7 +206,11 @@ namespace Autech.Admob
             {
                 if (useEncryptedStorage)
                 {
-                    SecureStorage.SaveEncryptedBool(removeAdsKey, value, encryptionKey);
+                    bool saveSuccess = SecureStorage.SaveEncryptedBool(removeAdsKey, value, encryptionKey);
+                    if (!saveSuccess)
+                    {
+                        throw new InvalidOperationException("[AdPersistenceManager] Failed to save encrypted Remove Ads status");
+                    }
                 }
                 else
                 {
