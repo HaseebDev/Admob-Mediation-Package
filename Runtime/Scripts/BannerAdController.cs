@@ -162,8 +162,9 @@ namespace Autech.Admob
             if (config.UseAdaptiveBanners)
             {
                 Debug.Log("[BannerAdController] Using adaptive banner");
-                // Get the actual adaptive banner size
-                return AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(AdSize.FullWidth);
+                // Get the device safe width in density-independent pixels (Google's official method)
+                int deviceWidth = MobileAds.Utils.GetDeviceSafeWidth();
+                return AdSize.GetCurrentOrientationAnchoredAdaptiveBannerAdSizeWithWidth(deviceWidth);
             }
 
             return GetStandardAdSize();
