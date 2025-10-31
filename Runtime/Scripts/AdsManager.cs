@@ -541,7 +541,7 @@ namespace Autech.Admob
             // Only load non-rewarded ads if RemoveAds is false
             if (!config.RemoveAds)
             {
-                bannerController.LoadBanner();
+                // Note: Banner loads when ShowBanner(true) is called, not pre-loaded
                 interstitialController.LoadAd();
                 appOpenController.LoadAd();
             }
