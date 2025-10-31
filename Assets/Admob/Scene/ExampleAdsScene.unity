@@ -890,7 +890,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0.118854165}
-  m_AnchoredPosition: {x: 3.0999756, y: 215}
+  m_AnchoredPosition: {x: 3.1000977, y: 215}
   m_SizeDelta: {x: -208.03516, y: -95.41406}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &1102068526
@@ -1699,7 +1699,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -435.98, y: -77.30005}
+  m_AnchoredPosition: {x: -435.97998, y: -77.299805}
   m_SizeDelta: {x: 871.9619, y: 154.80005}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1883359340
@@ -1724,11 +1724,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: enableConsentDebugging
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: alwaysRequestConsentUpdate
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2784422891448605819, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: m_LocalPosition.x
@@ -2159,7 +2159,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0.118854165}
-  m_AnchoredPosition: {x: 3.0999756, y: 411}
+  m_AnchoredPosition: {x: 3.1000977, y: 411}
   m_SizeDelta: {x: -208.03516, y: -95.41406}
   m_Pivot: {x: 0.5, y: 0}
 --- !u!114 &2030981599
