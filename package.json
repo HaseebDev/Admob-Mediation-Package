@@ -30,7 +30,7 @@
   "samples": [
     {
       "displayName": "Example Scene and UI",
-      "description": "Complete example scene showing AdMob integration with UI controls and consent management",
+      "description": "Complete example scene with scripts showing AdMob integration, UI controls, and consent management",
       "path": "Samples~/ExampleScene"
     },
     {
