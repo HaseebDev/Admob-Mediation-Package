@@ -1,3 +1,4 @@
+#if ADMOB_INSTALLED
 using UnityEngine;
 using GoogleMobileAds.Ump.Api;
 
@@ -128,3 +129,4 @@ namespace Autech.Admob
         }
     }
 }
+#endif // ADMOB_INSTALLED

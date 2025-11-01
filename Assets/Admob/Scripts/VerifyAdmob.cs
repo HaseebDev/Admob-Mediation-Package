@@ -1,3 +1,4 @@
+#if ADMOB_INSTALLED
 using System;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -424,3 +425,4 @@ public class VerifyAdmob : MonoBehaviour
             appOpenCooldownTime = 0;
     }
 }
+#endif // ADMOB_INSTALLED

@@ -1,3 +1,4 @@
+#if ADMOB_INSTALLED
 using System;
 using System.Threading.Tasks;
 using UnityEngine;
@@ -410,3 +411,4 @@ namespace Autech.Admob
         }
     }
 }
+#endif // ADMOB_INSTALLED
