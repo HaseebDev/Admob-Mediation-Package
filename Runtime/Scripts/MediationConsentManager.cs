@@ -13,6 +13,13 @@ namespace Autech.Admob
     /// </summary>
     public class MediationConsentManager
     {
+        private readonly ConsentManager consentManager;
+
+        public MediationConsentManager(ConsentManager consentManager)
+        {
+            this.consentManager = consentManager;
+        }
+
         public void SetMediationConsent(bool isAgeRestrictedUser = false)
         {
             Debug.Log("[MediationConsentManager] SetMediationConsent() started");
@@ -42,10 +49,10 @@ namespace Autech.Admob
                 Debug.Log($"[MediationConsentManager] Has explicit consent: {hasConsent}");
                 Debug.Log($"[MediationConsentManager] Is EEA/GDPR user: {isEEA}");
 
-                ConsentType? consentType = GetConsentTypeSafe();
-                bool isPersonalized = consentType == ConsentType.Personalized;
-                bool isNonPersonalized = consentType == ConsentType.NonPersonalized;
-                if (consentType.HasValue)
+                string consentType = GetConsentTypeSafe();
+                bool isPersonalized = consentType == "Personalized";
+                bool isNonPersonalized = consentType == "NonPersonalized";
+                if (!string.IsNullOrEmpty(consentType))
                 {
                     Debug.Log($"[MediationConsentManager] Consent type: {consentType}");
                 }
@@ -126,21 +133,26 @@ namespace Autech.Admob
             }
         }
 
-        private ConsentType? GetConsentTypeSafe()
+        private string GetConsentTypeSafe()
         {
             try
             {
-                return ConsentInformation.GetConsentType();
+                if (consentManager == null)
+                {
+                    Debug.LogWarning("[MediationConsentManager] ConsentManager is null.");
+                    return "Unknown";
+                }
+                return consentManager.GetConsentType();
             }
             catch (InvalidOperationException)
             {
                 Debug.LogWarning("[MediationConsentManager] Consent type not available yet.");
-                return null;
+                return "Unknown";
             }
             catch (Exception ex)
             {
                 Debug.LogWarning($"[MediationConsentManager] Failed to read consent type: {ex.Message}");
-                return null;
+                return "Unknown";
             }
         }
 
