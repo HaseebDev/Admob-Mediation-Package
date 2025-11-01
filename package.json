@@ -26,17 +26,5 @@
     "type": "git",
     "url": "https://github.com/HaseebDev/Admob-Mediation-Package.git"
   },
-  "license": "MIT",
-  "samples": [
-    {
-      "displayName": "Example Scene and UI",
-      "description": "Complete example scene with scripts showing AdMob integration, UI controls, and consent management",
-      "path": "Samples~/ExampleScene"
-    },
-    {
-      "displayName": "Prefabs",
-      "description": "Ready-to-use prefabs for quick integration",
-      "path": "Samples~/Prefabs"
-    }
-  ]
+  "license": "MIT"
 }
