@@ -20,7 +20,7 @@ public class VerifyAdmob : MonoBehaviour
     [SerializeField] private float appOpenCooldownTime = 4f;
 
     [Header("Banner Configuration")]
-    [SerializeField] private bool useAdaptiveBanners = true;
+    [SerializeField] private bool useAdaptiveBanners = false;
     [SerializeField] private bool enableCollapsibleBanners = false;
     [SerializeField] private BannerSize preferredBannerSize = BannerSize.Banner;
 
@@ -66,7 +66,6 @@ public class VerifyAdmob : MonoBehaviour
         try
         {
             var manager = AdsManager.Instance;
-            removeAds = manager.RemoveAds;
             var settings = ApplyAllSettings(manager);
 
             manager.VerifyHit();
@@ -126,11 +125,11 @@ public class VerifyAdmob : MonoBehaviour
         }
     }
 
-    private AdsManager.AdsManagerSettings BuildManagerSettings()
+    private AdsManager.AdsManagerSettings BuildManagerSettings(AdsManager manager)
     {
         return new AdsManager.AdsManagerSettings
         {
-            RemoveAds = removeAds,
+            RemoveAds = manager.RemoveAds,  // Always use manager's persisted value, never inspector default
             ForceEEAGeographyForTesting = forceEEAGeographyForTesting,
             EnableConsentDebugging = enableConsentDebugging,
             AlwaysRequestConsentUpdate = alwaysRequestConsentUpdate,
@@ -157,7 +156,7 @@ public class VerifyAdmob : MonoBehaviour
 
     private AdsManager.AdsManagerSettings ApplyAllSettings(AdsManager manager)
     {
-        var settings = BuildManagerSettings();
+        var settings = BuildManagerSettings(manager);
         manager.ApplyConfiguration(settings);
 
         if (showPersistenceDebugLogs)
@@ -345,7 +344,7 @@ public class VerifyAdmob : MonoBehaviour
 
     public void RefreshAdsWithCurrentIds()
     {
-        AdsManager.Instance.ApplyConfiguration(BuildManagerSettings());
+        AdsManager.Instance.ApplyConfiguration(BuildManagerSettings(AdsManager.Instance));
         Debug.Log("[VerifyAdmob] Ads refreshed");
     }
 

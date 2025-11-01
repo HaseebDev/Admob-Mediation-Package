@@ -95,7 +95,7 @@ namespace Autech.Admob
         public bool RemoveAds { get; set; } = false;
 
         // Banner Settings
-        public bool UseAdaptiveBanners { get; set; } = true;
+        public bool UseAdaptiveBanners { get; set; } = false;
         public bool EnableCollapsibleBanners { get; set; } = false;
         public BannerSize PreferredBannerSize { get; set; } = BannerSize.Banner;
 
@@ -106,7 +106,8 @@ namespace Autech.Admob
 #elif UNITY_IOS
             return iosId;
 #else
-            return ""; // Editor or unsupported platform
+            // Unity Editor: Use Android test IDs for testing
+            return androidId;
 #endif
         }
 
