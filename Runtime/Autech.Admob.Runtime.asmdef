@@ -6,7 +6,11 @@
         "GoogleMobileAds.Core",
         "GoogleMobileAds.Ump",
         "GoogleMobileAds.Common",
-        "GoogleMobileAds.Mediation.UnityAds.Api"
+        "GoogleMobileAds.Mediation.UnityAds.Api",
+        "GoogleMobileAds.Mediation.UnityAds.Common",
+        "GoogleMobileAds.Mediation.UnityAds.Android",
+        "GoogleMobileAds.Mediation.UnityAds.iOS",
+        "GoogleMobileAds.Editor"
     ],
     "includePlatforms": [],
     "excludePlatforms": [],
