@@ -410,7 +410,7 @@ namespace Autech.Admob
             config = new AdConfiguration();
             consentManager = new ConsentManager();
             persistenceManager = new AdPersistenceManager();
-            mediationConsentManager = new MediationConsentManager();
+            mediationConsentManager = new MediationConsentManager(consentManager);
 
             bannerController = new BannerAdController(config);
             interstitialController = new InterstitialAdController(config);

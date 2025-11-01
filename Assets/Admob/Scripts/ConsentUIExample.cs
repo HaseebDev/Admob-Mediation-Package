@@ -329,4 +329,5 @@ namespace AdmobMediationPackage
 
         #endregion
     }
-}#endif // ADMOB_INSTALLED
+}
+#endif // ADMOB_INSTALLED
