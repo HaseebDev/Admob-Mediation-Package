@@ -2,10 +2,6 @@
     "name": "Autech.Admob.Runtime",
     "rootNamespace": "Autech.Admob",
     "references": [
-        "GoogleMobileAds.Core",
-        "GoogleMobileAds.Ump",
-        "GoogleMobileAds.Common",
-        "GoogleMobileAds.Mediation.UnityAds.Api",
         "Unity.TextMeshPro"
     ],
     "includePlatforms": [],

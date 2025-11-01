@@ -1,3 +1,4 @@
+#if ADMOB_INSTALLED
 using System;
 using UnityEngine;
 using UnityEngine.UI;
@@ -610,3 +611,4 @@ public class AdsExampleUI : MonoBehaviour
     #endregion
 
 }
+#endif // ADMOB_INSTALLED
