@@ -1,4 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Text;
+using System.Text.RegularExpressions;
 using UnityEditor;
 using UnityEngine;
 using PackageManagerPackageInfo = UnityEditor.PackageManager.PackageInfo;
@@ -23,6 +27,17 @@ namespace Autech.Admob.EditorTools
         private const string UnityMediationRecommendedVersion = "3.15.0";
         private const string UnityMediationGitUrl = "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.15.0";
         private const string UnityMediationLegacyFolder = "Assets/GoogleMobileAds/Mediation/UnityAds";
+
+        private const string EdmPackageId = "com.google.external-dependency-manager";
+        private const string EdmRecommendedVersion = "1.2.186";
+        private const string EdmRegistryName = "package.openupm.com";
+        private const string EdmRegistryUrl = "https://package.openupm.com";
+        private const string EdmManifestEntry = "com.google.external-dependency-manager";
+        private const string EdmAddIdentifier = "com.google.external-dependency-manager@1.2.186";
+        private const string ManifestPathRelative = "../Packages/manifest.json";
+        private const string ManifestBackupSuffix = ".bak_autech_admob";
+
+        private static bool s_manifestEnsured;
 
         private static readonly List<PackageManagerAddRequest> PendingRequests = new();
         private static bool s_hasQueuedInstall;
@@ -68,6 +83,7 @@ namespace Autech.Admob.EditorTools
 
         private static readonly PackageDescriptor[] Descriptors =
         {
+            new PackageDescriptor("External Dependency Manager", EdmPackageId, EdmRecommendedVersion, EdmAddIdentifier, string.Empty),
             new PackageDescriptor("Google Mobile Ads", GmaPackageId, GmaRecommendedVersion, GmaGitUrl, GmaLegacyFolder),
             new PackageDescriptor("Unity Ads Mediation Adapter", UnityMediationPackageId, UnityMediationRecommendedVersion, UnityMediationGitUrl, UnityMediationLegacyFolder)
         };
@@ -139,6 +155,12 @@ namespace Autech.Admob.EditorTools
                 return;
             }
 
+            if (!EnsureManifestConfigured())
+            {
+                Debug.LogError("[Autech.Admob] Unable to prepare manifest.json for dependency installation. Please review the console for details.");
+                return;
+            }
+
             var evaluations = EvaluatePackages();
 
             bool allRecommended = AllMatchRecommended(evaluations);
@@ -198,6 +220,195 @@ namespace Autech.Admob.EditorTools
             Debug.Log("[Autech.Admob] Google Mobile Ads dependencies verified.");
         }
 
+        private static bool EnsureManifestConfigured()
+        {
+            if (s_manifestEnsured)
+            {
+                return true;
+            }
+
+            var manifestPath = Path.GetFullPath(Path.Combine(Application.dataPath, ManifestPathRelative));
+            if (!File.Exists(manifestPath))
+            {
+                Debug.LogError($"[Autech.Admob] Unable to locate manifest.json at path: {manifestPath}");
+                return false;
+            }
+
+            string manifestContent;
+            try
+            {
+                manifestContent = File.ReadAllText(manifestPath, Encoding.UTF8);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError($"[Autech.Admob] Failed to read manifest.json: {ex.Message}");
+                return false;
+            }
+
+            bool changed = false;
+
+            if (!ContainsDependency(manifestContent, EdmManifestEntry))
+            {
+                manifestContent = InsertDependency(manifestContent, EdmManifestEntry, EdmRecommendedVersion);
+                changed = true;
+            }
+
+            manifestContent = EnsureRegistryEntry(manifestContent, out bool registryChanged);
+            changed |= registryChanged;
+
+            if (changed)
+            {
+                try
+                {
+                    var backupPath = manifestPath + ManifestBackupSuffix;
+                    if (!File.Exists(backupPath))
+                    {
+                        File.Copy(manifestPath, backupPath);
+                        Debug.Log($"[Autech.Admob] Backed up manifest.json to {backupPath}");
+                    }
+
+                    File.WriteAllText(manifestPath, manifestContent, Encoding.UTF8);
+                    AssetDatabase.Refresh();
+                    Debug.Log("[Autech.Admob] Updated manifest.json with required dependency registry settings.");
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogError($"[Autech.Admob] Failed to update manifest.json: {ex.Message}");
+                    return false;
+                }
+            }
+
+            s_manifestEnsured = true;
+            return true;
+        }
+
+        private static bool ContainsDependency(string manifestContent, string dependencyId)
+        {
+            var pattern = $"\"{Regex.Escape(dependencyId)}\"\\s*:";
+            return Regex.IsMatch(manifestContent, pattern);
+        }
+
+        private static string InsertDependency(string manifestContent, string dependencyId, string version)
+        {
+            var match = Regex.Match(manifestContent, "\"dependencies\"\\s*:\\s*{");
+            if (!match.Success)
+            {
+                throw new InvalidOperationException("manifest.json does not contain a 'dependencies' section.");
+            }
+
+            var braceIndex = manifestContent.IndexOf('{', match.Index);
+            if (braceIndex < 0)
+            {
+                throw new InvalidOperationException("Unable to locate opening brace for 'dependencies' section.");
+            }
+
+            int closingBrace = FindMatchingBracket(manifestContent, braceIndex, '{', '}');
+            if (closingBrace < 0)
+            {
+                throw new InvalidOperationException("Unable to locate closing brace for 'dependencies' section.");
+            }
+
+            var innerContent = manifestContent.Substring(braceIndex + 1, closingBrace - braceIndex - 1);
+            bool hasEntries = innerContent.Trim().Length > 0;
+            string insertion = (hasEntries ? "," : string.Empty) + $"\n    \"{dependencyId}\": \"{version}\"";
+
+            return manifestContent.Insert(closingBrace, insertion);
+        }
+
+        private static string EnsureRegistryEntry(string manifestContent, out bool changed)
+        {
+            changed = false;
+
+            var registryBlock = BuildRegistryEntry();
+            var registryPattern = new Regex(@"\{\s*""name""\s*:\s*""package\.openupm\.com""[\s\S]*?\}", RegexOptions.Multiline);
+            if (registryPattern.IsMatch(manifestContent))
+            {
+                var match = registryPattern.Match(manifestContent);
+                if (!match.Value.Contains($"\"scopes\"") ||
+                    !match.Value.Contains("\"com.google.external-dependency-manager\"") ||
+                    !match.Value.Contains("\"com.google.ads.mobile\"") ||
+                    !match.Value.Contains(EdmRegistryUrl))
+                {
+                    manifestContent = manifestContent.Remove(match.Index, match.Length)
+                        .Insert(match.Index, registryBlock);
+                    changed = true;
+                }
+                return manifestContent;
+            }
+
+            var scopedRegistriesIndex = manifestContent.IndexOf("\"scopedRegistries\"", StringComparison.Ordinal);
+            if (scopedRegistriesIndex < 0)
+            {
+                // Add new scopedRegistries block just before closing brace
+                int rootClosing = manifestContent.LastIndexOf('}');
+                if (rootClosing < 0)
+                {
+                    throw new InvalidOperationException("manifest.json root object is invalid.");
+                }
+
+                var insertion = ",\n  \"scopedRegistries\": [\n" + registryBlock + "\n  ]\n";
+                manifestContent = manifestContent.Insert(rootClosing, insertion);
+                changed = true;
+                return manifestContent;
+            }
+
+            int arrayStart = manifestContent.IndexOf('[', scopedRegistriesIndex);
+            if (arrayStart < 0)
+            {
+                throw new InvalidOperationException("Unable to locate scopedRegistries array in manifest.json.");
+            }
+
+            int arrayEnd = FindMatchingBracket(manifestContent, arrayStart, '[', ']');
+            if (arrayEnd < 0)
+            {
+                throw new InvalidOperationException("Unable to locate end of scopedRegistries array.");
+            }
+
+            string arrayContent = manifestContent.Substring(arrayStart + 1, arrayEnd - arrayStart - 1);
+            bool hasEntries = arrayContent.Trim().Length > 0;
+
+            string entryInsertion = (hasEntries ? ",\n" : "\n") + registryBlock + "\n";
+            manifestContent = manifestContent.Insert(arrayEnd, entryInsertion);
+            changed = true;
+            return manifestContent;
+        }
+
+        private static string BuildRegistryEntry()
+        {
+            return
+                "    {\n" +
+                $"      \"name\": \"{EdmRegistryName}\",\n" +
+                $"      \"url\": \"{EdmRegistryUrl}\",\n" +
+                "      \"scopes\": [\n" +
+                "        \"com.google.ads.mobile\",\n" +
+                "        \"com.google.external-dependency-manager\"\n" +
+                "      ]\n" +
+                "    }";
+        }
+
+        private static int FindMatchingBracket(string content, int startIndex, char openChar, char closeChar)
+        {
+            int depth = 0;
+            for (int i = startIndex; i < content.Length; i++)
+            {
+                char c = content[i];
+                if (c == openChar)
+                {
+                    depth++;
+                }
+                else if (c == closeChar)
+                {
+                    depth--;
+                    if (depth == 0)
+                    {
+                        return i;
+                    }
+                }
+            }
+
+            return -1;
+        }
+
         private static PackageEvaluation[] EvaluatePackages()
         {
             var result = new PackageEvaluation[Descriptors.Length];
@@ -226,7 +437,8 @@ namespace Autech.Admob.EditorTools
                             : packageInfo.version;
                         evaluation.VersionMatch = packageInfo.version == descriptor.RecommendedVersion;
                     }
-                    else if (AssetDatabase.IsValidFolder(descriptor.LegacyFolder))
+                    else if (!string.IsNullOrEmpty(descriptor.LegacyFolder) &&
+                             AssetDatabase.IsValidFolder(descriptor.LegacyFolder))
                     {
                         evaluation.Installed = true;
                         evaluation.LegacyInstall = true;
