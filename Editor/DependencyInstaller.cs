@@ -37,6 +37,7 @@ namespace Autech.Admob.EditorTools
         private const string ManifestPathRelative = "../Packages/manifest.json";
         private const string ManifestBackupSuffix = ".bak_autech_admob";
 
+        private static readonly Encoding ManifestEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: false, throwOnInvalidBytes: true);
         private static bool s_manifestEnsured;
 
         private static readonly List<PackageManagerAddRequest> PendingRequests = new();
@@ -267,7 +268,7 @@ namespace Autech.Admob.EditorTools
                         Debug.Log($"[Autech.Admob] Backed up manifest.json to {backupPath}");
                     }
 
-                    File.WriteAllText(manifestPath, manifestContent, Encoding.UTF8);
+                    File.WriteAllText(manifestPath, manifestContent, ManifestEncoding);
                     AssetDatabase.Refresh();
                     Debug.Log("[Autech.Admob] Updated manifest.json with required dependency registry settings.");
                 }
