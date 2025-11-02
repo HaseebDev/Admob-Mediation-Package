@@ -395,6 +395,7 @@ namespace Autech.Admob
                     instance = this;
                     DontDestroyOnLoad(gameObject);
                     MobileAdsEventExecutor.Initialize();
+                    MobileAds.RaiseAdEventsOnUnityMainThread = true;
                     InitializeComponents();
                 }
                 else

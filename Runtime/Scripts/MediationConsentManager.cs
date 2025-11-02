@@ -60,12 +60,10 @@ namespace Autech.Admob
                 bool gdprConsentFlag = hasConsent || (!isEEA && canRequestAds);
                 bool privacyConsentFlag = canRequestAds;
                 bool trackingAllowed = hasConsent && isPersonalized;
-
-                if (!isEEA && canRequestAds && !isNonPersonalized)
+                 if (!isEEA && canRequestAds && !isNonPersonalized)
                 {
                     trackingAllowed = true;
                 }
-
                 string privacyMode = DeterminePrivacyMode(isEEA, hasConsent, canRequestAds, isPersonalized, isNonPersonalized);
 
                 UnityAds.SetConsentMetaData("gdpr.consent", gdprConsentFlag);
