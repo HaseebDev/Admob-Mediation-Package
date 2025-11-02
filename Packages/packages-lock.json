@@ -18,23 +18,23 @@
       "hash": "38fecf55e4fd94ccfe58a92ed8ad1a529ba1694e"
     },
     "com.google.ads.mobile": {
-      "version": "https://github.com/googleads/googleads-mobile-unity.git?path=packages/com.google.ads.mobile#v10.4.2",
+      "version": "https://github.com/googleads/googleads-mobile-unity.git?path=packages/com.google.ads.mobile#v10.6.0",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.google.external-dependency-manager": "1.2.186",
         "com.unity.modules.androidjni": "1.0.0"
       },
-      "hash": "0f0ef22a4a4b1894951539831f9e3947ff634a75"
+      "hash": "bb5f793b863de2a5014207b2980c25f9e808a5b9"
     },
     "com.google.ads.mobile.mediation.unity": {
-      "version": "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.15.0",
+      "version": "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.16.1",
       "depth": 0,
       "source": "git",
       "dependencies": {
         "com.google.ads.mobile": "10.0.0"
       },
-      "hash": "d054565cf28099636ed0f6772a5da56b7ea319e3"
+      "hash": "77ce58a53a65f23f0eb330c67cef4c778d1aaeac"
     },
     "com.google.external-dependency-manager": {
       "version": "1.2.186",
@@ -225,6 +225,13 @@
     "com.unity.mathematics": {
       "version": "1.3.2",
       "depth": 2,
+      "source": "registry",
+      "dependencies": {},
+      "url": "https://packages.unity.com"
+    },
+    "com.unity.mobile.android-logcat": {
+      "version": "1.4.6",
+      "depth": 0,
       "source": "registry",
       "dependencies": {},
       "url": "https://packages.unity.com"

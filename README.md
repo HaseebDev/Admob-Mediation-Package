@@ -150,7 +150,7 @@ AdsManager.Instance.ShowRewarded(OnRewardedClosed, OnRewardedFailed);
 ## 📋 Prerequisites
 
 - Unity 2020.3 or higher
-- Google Mobile Ads Unity SDK 10.2.0+
+- Google Mobile Ads Unity SDK 10.6.0+
 - Git installed (for Package Manager Git URL import)
 
 ## 🚀 Installation Guide
@@ -169,7 +169,7 @@ AdsManager.Instance.ShowRewarded(OnRewardedClosed, OnRewardedFailed);
 
 Ensure the following packages exist (via Package Manager or `Packages/manifest.json`):
 
-- `com.google.ads.mobile` (Google Mobile Ads, 10.4.2+ recommended)
+- `com.google.ads.mobile` (Google Mobile Ads, 10.6.0+ recommended)
 - `com.google.ads.mobile.mediation.unity` (Unity Ads mediation adapter)
 - `com.google.external-dependency-manager` (EDM4U)
 

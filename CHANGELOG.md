@@ -89,7 +89,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **File Size**: ~21 KiB (optimized)
 - **Unity Compatibility**: 2020.3+
 - **Platform Support**: Android, iOS
-- **Dependencies**: Google Mobile Ads Unity SDK 10.2.0+
+- **Dependencies**: Google Mobile Ads Unity SDK 10.6.0+
 
 ---
 
@@ -175,7 +175,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **File Size**: ~21 KiB (increased from ~14 KiB due to new features)
 - **Unity Compatibility**: 2020.3+
 - **Platform Support**: Android, iOS
-- **Dependencies**: Google Mobile Ads Unity SDK 10.2.0+
+- **Dependencies**: Google Mobile Ads Unity SDK 10.6.0+
 
 ---
 
@@ -297,7 +297,7 @@ testCalls.CheckAllAdStatus();
 
 #### Configuration Updates
 1. Install Unity Ads mediation plugin
-2. Update Google Mobile Ads SDK to 10.2.0+
+2. Update Google Mobile Ads SDK to 10.6.0+
 3. Configure UMP SDK for GDPR compliance
 4. Update ad initialization code if customized
 

@@ -22,12 +22,12 @@
     "versionDefines": [
         {
             "name": "com.google.ads.mobile",
-            "expression": "10.0.0",
+            "expression": "10.6.0",
             "define": "ADMOB_INSTALLED"
         },
         {
             "name": "com.google.ads.mobile.mediation.unity",
-            "expression": "3.0.0",
+            "expression": "3.16.1",
             "define": "UNITY_ADS_MEDIATION"
         }
     ],

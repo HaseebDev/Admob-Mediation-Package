@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using UnityEngine;
 using GoogleMobileAds.Api;
 using GoogleMobileAds.Ump.Api;
+using GoogleMobileAds.Common;
  
 namespace Autech.Admob
 {
@@ -393,6 +394,7 @@ namespace Autech.Admob
                     Debug.Log("[AdsManager] Creating singleton instance");
                     instance = this;
                     DontDestroyOnLoad(gameObject);
+                    MobileAdsEventExecutor.Initialize();
                     InitializeComponents();
                 }
                 else
@@ -437,8 +439,6 @@ namespace Autech.Admob
             try
             {
                 Debug.Log("[AdsManager] InitializeAdsAsync() started");
-
-                MobileAds.RaiseAdEventsOnUnityMainThread = true;
 
             if (config.EnableTestAds)
             {
@@ -498,7 +498,8 @@ namespace Autech.Admob
             var requestConfiguration = new RequestConfiguration
             {
                 // Test mode is enabled via EnableTestAds flag - no need for specific device IDs
-                TestDeviceIds = config.EnableTestAds ? new System.Collections.Generic.List<string>() : null
+                //TestDeviceIds = config.EnableTestAds ? new System.Collections.Generic.List<string>() : null
+                TestDeviceIds = new System.Collections.Generic.List<string>()
             };
 
             MobileAds.SetRequestConfiguration(requestConfiguration);

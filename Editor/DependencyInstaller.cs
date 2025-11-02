@@ -19,13 +19,13 @@ namespace Autech.Admob.EditorTools
         private const string SessionStateKey = "Autech.Admob.StartupCheckCompleted";
 
         private const string GmaPackageId = "com.google.ads.mobile";
-        private const string GmaRecommendedVersion = "10.4.2";
-        private const string GmaGitUrl = "https://github.com/googleads/googleads-mobile-unity.git?path=packages/com.google.ads.mobile#v10.4.2";
+        private const string GmaRecommendedVersion = "10.6.0";
+        private const string GmaGitUrl = "https://github.com/googleads/googleads-mobile-unity.git?path=packages/com.google.ads.mobile#v10.6.0";
         private const string GmaLegacyFolder = "Assets/GoogleMobileAds";
 
         private const string UnityMediationPackageId = "com.google.ads.mobile.mediation.unity";
-        private const string UnityMediationRecommendedVersion = "3.15.0";
-        private const string UnityMediationGitUrl = "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.15.0";
+        private const string UnityMediationRecommendedVersion = "3.16.1";
+        private const string UnityMediationGitUrl = "https://github.com/googleads/googleads-mobile-unity-mediation.git?path=/UnityAds#UnityAds/v3.16.1";
         private const string UnityMediationLegacyFolder = "Assets/GoogleMobileAds/Mediation/UnityAds";
 
         private const string EdmPackageId = "com.google.external-dependency-manager";
