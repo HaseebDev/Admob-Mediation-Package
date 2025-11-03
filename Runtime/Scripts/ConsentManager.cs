@@ -32,6 +32,9 @@ namespace Autech.Admob
         private bool wasAbleToRequestAds = false;
         private bool lastPrivacyOptionsRequirementState = false;
         private bool hasLoggedPrivacyRequirementState = false;
+        private const int TcfPollIntervalMs = 100;
+        private const int TcfDataTimeoutMs = 5000;
+        private const string TcfPurposeConsentsKey = "IABTCF_PurposeConsents";
 
         /// <summary>
         /// Checks if debug bypass is allowed based on build configuration.
@@ -156,9 +159,8 @@ namespace Autech.Admob
                 
                 if (status == ConsentStatus.Obtained)
                 {
-                    Debug.Log("[ConsentManager] Waiting for UMP SDK to ensure TCF strings are available...");
-                    await Task.Delay(300);
-                    Debug.Log("[ConsentManager] TCF read delay complete - proceeding with initialization");
+                    Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (initial check)...");
+                    await WaitForTcfDataAsync("initial status check");
                 }
                 
                 OnConsentReady?.Invoke(true);
@@ -224,9 +226,8 @@ namespace Autech.Admob
         private async void HandleConsentObtained()
         {
             Debug.Log("[ConsentManager] Consent Status: OBTAINED");
-            Debug.Log("[ConsentManager] Waiting for UMP SDK to ensure TCF strings are available...");
-            await Task.Delay(300);
-            Debug.Log("[ConsentManager] TCF read delay complete - proceeding with initialization");
+            Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (obtained handler)...");
+            await WaitForTcfDataAsync("consent obtained handler");
             OnConsentReady?.Invoke(true);
             isConsentInitialized = true;
         }
@@ -281,9 +282,8 @@ namespace Autech.Admob
 
             if (ConsentInformation.CanRequestAds())
             {
-                Debug.Log("[ConsentManager] Waiting for UMP SDK to write TCF strings to native storage...");
-                await Task.Delay(500);
-                Debug.Log("[ConsentManager] TCF write delay complete - proceeding with initialization");
+                Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (post form)...");
+                await WaitForTcfDataAsync("post form");
 
                 OnConsentReady?.Invoke(true);
                 isConsentInitialized = true;
@@ -348,6 +348,49 @@ namespace Autech.Admob
                     OnConsentReady?.Invoke(false);
                 }
             }
+        }
+
+        private async Task WaitForTcfDataAsync(string contextLabel)
+        {
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+            if (ConsentInformation.ConsentStatus != ConsentStatus.Obtained)
+            {
+                return;
+            }
+
+            int elapsed = 0;
+            while (elapsed < TcfDataTimeoutMs)
+            {
+                if (IsTcfDataAvailable())
+                {
+                    if (elapsed > 0)
+                    {
+                        Debug.Log($"[ConsentManager] TCF data ready after {elapsed}ms ({contextLabel})");
+                    }
+                    return;
+                }
+
+                await Task.Delay(TcfPollIntervalMs);
+                elapsed += TcfPollIntervalMs;
+            }
+
+            Debug.LogWarning($"[ConsentManager] TCF data not available after {TcfDataTimeoutMs}ms ({contextLabel}) - continuing");
+#else
+            await Task.CompletedTask;
+#endif
+        }
+
+        private bool IsTcfDataAvailable()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            string purposeConsents = GetAndroidSharedPreference(TcfPurposeConsentsKey, "");
+            return !string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2;
+#elif UNITY_IOS && !UNITY_EDITOR
+            string purposeConsents = GetIOSUserDefault(TcfPurposeConsentsKey, "");
+            return !string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2;
+#else
+            return true;
+#endif
         }
 
         private void LogDetailedConsentStatus()
