@@ -30,6 +30,8 @@ namespace Autech.Admob
         private bool isConsentInitialized = false;
         private bool developerBypassEnabled = false;
         private bool wasAbleToRequestAds = false;
+        private bool lastPrivacyOptionsRequirementState = false;
+        private bool hasLoggedPrivacyRequirementState = false;
 
         /// <summary>
         /// Checks if debug bypass is allowed based on build configuration.
@@ -389,7 +391,12 @@ namespace Autech.Admob
         public bool ShouldShowPrivacyOptionsButton()
         {
             bool shouldShow = ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required;
-            Debug.Log($"[ConsentManager] Should show privacy options button: {shouldShow}");
+            if (!hasLoggedPrivacyRequirementState || shouldShow != lastPrivacyOptionsRequirementState)
+            {
+                Debug.Log($"[ConsentManager] Should show privacy options button: {shouldShow}");
+                lastPrivacyOptionsRequirementState = shouldShow;
+                hasLoggedPrivacyRequirementState = true;
+            }
             return shouldShow;
         }
 
