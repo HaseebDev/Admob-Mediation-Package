@@ -35,6 +35,10 @@ namespace Autech.Admob
         private const int TcfPollIntervalMs = 100;
         private const int TcfDataTimeoutMs = 5000;
         private const string TcfPurposeConsentsKey = "IABTCF_PurposeConsents";
+        private static readonly string[] DefaultDebugDeviceHashedIds =
+        {
+            "e1dd805b9856934e652fcfa018506e3128f7182f49707d403c81e3caadbbfab8"
+        };
 
         /// <summary>
         /// Checks if debug bypass is allowed based on build configuration.
@@ -127,21 +131,39 @@ namespace Autech.Admob
                 TagForUnderAgeOfConsent = this.TagForUnderAgeOfConsent
             };
 
-            if (EnableConsentDebugging)
+            if (ShouldApplyDebugConsentSettings())
             {
-                Debug.Log("[ConsentManager] CONSENT DEBUGGING ENABLED");
-                Debug.LogWarning("[ConsentManager] Should be DISABLED in production");
-
                 var debugSettings = new ConsentDebugSettings
                 {
-                    DebugGeography = ForceEEAGeographyForTesting ? DebugGeography.EEA : DebugGeography.Other,
-                    TestDeviceHashedIds = new List<string>()
+                    TestDeviceHashedIds = new List<string>(DefaultDebugDeviceHashedIds)
                 };
+
+                if (ForceEEAGeographyForTesting)
+                {
+                    debugSettings.DebugGeography = DebugGeography.EEA;
+                    Debug.Log("[ConsentManager] ForceEEAGeographyForTesting enabled - requesting EEA consent flow for this device.");
+                    Debug.LogWarning("[ConsentManager] Ensure this device's hashed ID is registered with Google UMP debug settings, otherwise the override will be ignored.");
+                }
+                else
+                {
+                    debugSettings.DebugGeography = DebugGeography.Other;
+                }
+
+                if (EnableConsentDebugging)
+                {
+                    Debug.Log("[ConsentManager] CONSENT DEBUGGING ENABLED");
+                    Debug.LogWarning("[ConsentManager] Should be DISABLED in production");
+                }
 
                 request.ConsentDebugSettings = debugSettings;
             }
 
             return request;
+        }
+
+        private bool ShouldApplyDebugConsentSettings()
+        {
+            return EnableConsentDebugging || ForceEEAGeographyForTesting;
         }
 
         private async Task CheckConsentStatusAsync()
