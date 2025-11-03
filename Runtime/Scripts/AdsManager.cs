@@ -173,6 +173,7 @@ namespace Autech.Admob
         private bool isInitialized = false;
         private bool isShowingAd = false;
         private bool isFirstTimeLoading = true;
+        private bool hasConsentForAds = false;
 
         // Events
         public static Action<bool> OnRemoveAdsChanged;
@@ -460,6 +461,7 @@ namespace Autech.Admob
             else
             {
                 Debug.LogWarning("[AdsManager] Consent debugging enabled – skipping UMP flow and initializing AdMob directly.");
+                hasConsentForAds = true;
                 mediationConsentManager.SetMediationConsent(consentManager?.TagForUnderAgeOfConsent ?? false);
                 InitializeAdMob();
                 CompleteInitialization(null);
@@ -476,20 +478,45 @@ namespace Autech.Admob
         {
             Debug.Log($"[AdsManager] OnConsentReady() - Can request ads: {canRequestAds}");
 
+            hasConsentForAds = canRequestAds;
+            mediationConsentManager.SetMediationConsent(consentManager?.TagForUnderAgeOfConsent ?? false);
+
             if (canRequestAds)
             {
-                mediationConsentManager.SetMediationConsent(consentManager?.TagForUnderAgeOfConsent ?? false);
-                InitializeAdMob();
+                if (!isInitialized)
+                {
+                    InitializeAdMob();
+                }
+                else
+                {
+                    Debug.Log("[AdsManager] Consent granted - refreshing cached ads");
+                    LoadAllAds();
+                }
             }
             else
             {
-                Debug.LogWarning("[AdsManager] Cannot request ads - initialization aborted");
+                HandleConsentRevoked();
             }
         }
 
         private void OnConsentError(string errorMessage)
         {
             Debug.LogError($"[AdsManager] Consent error occurred: {errorMessage}");
+        }
+
+        private void HandleConsentRevoked()
+        {
+            Debug.LogWarning("[AdsManager] Consent revoked - clearing loaded ads and halting mediation refresh");
+
+            ClearAdShowing();
+
+            bannerController?.DestroyBanner();
+            interstitialController?.Destroy();
+            rewardedController?.Destroy();
+            rewardedInterstitialController?.Destroy();
+            appOpenController?.Destroy();
+
+            isFirstTimeLoading = true;
         }
 
         private void InitializeAdMob()
@@ -535,6 +562,12 @@ namespace Autech.Admob
 
         private void LoadAllAds()
         {
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] LoadAllAds() skipped - consent not granted");
+                return;
+            }
+
             Debug.Log($"[AdsManager] LoadAllAds() - RemoveAds: {config.RemoveAds}");
 
             // Always load rewarded ads
@@ -564,6 +597,12 @@ namespace Autech.Admob
             }
             else if (isInitialized)
             {
+                if (!hasConsentForAds)
+                {
+                    Debug.LogWarning("[AdsManager] Consent revoked - skipping ad reload after Remove Ads disabled");
+                    return;
+                }
+
                 bannerController.LoadBanner();
                 interstitialController.LoadAd();
                 appOpenController.LoadAd();
@@ -574,12 +613,22 @@ namespace Autech.Admob
         public void LoadBanner()
         {
             EnsureInitializationRequested();
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot load banner - consent not granted");
+                return;
+            }
             bannerController.LoadBanner();
         }
 
         public void ShowBanner(bool show)
         {
             EnsureInitializationRequested();
+            if (show && !hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot show banner - consent not granted");
+                return;
+            }
             bannerController.ShowBanner(show);
         }
         public void SetInitialBannerVisibility(bool show) => ShowBanner(show);
@@ -615,6 +664,12 @@ namespace Autech.Admob
         public void ShowInterstitial(Action onSuccess, Action onFailure)
         {
             EnsureInitializationRequested();
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot show interstitial - consent not granted");
+                onFailure?.Invoke();
+                return;
+            }
             if (interstitialController == null)
             {
                 Debug.LogWarning("[AdsManager] InterstitialController not initialized");
@@ -658,6 +713,12 @@ namespace Autech.Admob
         public void ShowRewarded(Action<Reward> onRewarded, Action onSuccess, Action onFailure)
         {
             EnsureInitializationRequested();
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot show rewarded ad - consent not granted");
+                onFailure?.Invoke();
+                return;
+            }
             if (rewardedController == null)
             {
                 Debug.LogWarning("[AdsManager] RewardedController not initialized");
@@ -703,6 +764,12 @@ namespace Autech.Admob
         public void ShowRewardedInterstitial(Action<Reward> onRewarded, Action onSuccess, Action onFailure)
         {
             EnsureInitializationRequested();
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot show rewarded interstitial - consent not granted");
+                onFailure?.Invoke();
+                return;
+            }
             if (rewardedInterstitialController == null)
             {
                 Debug.LogWarning("[AdsManager] RewardedInterstitialController not initialized");
@@ -748,6 +815,12 @@ namespace Autech.Admob
         public void ShowAppOpenAd(Action onSuccess, Action onFailure)
         {
             EnsureInitializationRequested();
+            if (!hasConsentForAds)
+            {
+                Debug.LogWarning("[AdsManager] Cannot show app open ad - consent not granted");
+                onFailure?.Invoke();
+                return;
+            }
             if (appOpenController == null)
             {
                 Debug.LogWarning("[AdsManager] AppOpenController not initialized");
@@ -836,7 +909,14 @@ namespace Autech.Admob
             rewardedInterstitialController.Destroy();
             appOpenController.Destroy();
 
-            LoadAllAds();
+            if (hasConsentForAds)
+            {
+                LoadAllAds();
+            }
+            else
+            {
+                Debug.LogWarning("[AdsManager] Consent not granted - deferring ad reload until consent is restored");
+            }
         }
 
         public void LogCurrentAdIds() => config.LogCurrentAdIds();
