@@ -1,0 +1,18 @@
+<linker>
+  <!-- Preserve Google Mobile Ads assemblies to prevent linker stripping -->
+  <!-- This fixes ArgumentNullException in GetClientFactory() on Android devices -->
+  
+  <assembly fullname="GoogleMobileAds.Unity" preserve="all"/>
+  <assembly fullname="GoogleMobileAds.Android" preserve="all"/>
+  <assembly fullname="GoogleMobileAds.iOS" preserve="all"/>
+  <assembly fullname="GoogleMobileAds.Common" preserve="all"/>
+  <assembly fullname="GoogleMobileAds" preserve="all"/>
+  
+  <!-- Preserve UMP (User Messaging Platform) assemblies for consent -->
+  <assembly fullname="GoogleMobileAds.Ump.Android" preserve="all"/>
+  <assembly fullname="GoogleMobileAds.Ump.iOS" preserve="all"/>
+  
+  <!-- Preserve Unity Ads Mediation if used -->
+  <assembly fullname="GoogleMobileAds.Mediation.UnityAds.Android" preserve="all"/>
+  <assembly fullname="GoogleMobileAds.Mediation.UnityAds.iOS" preserve="all"/>
+</linker>

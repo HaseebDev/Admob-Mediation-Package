@@ -1,0 +1,35 @@
+{
+    "name": "Autech.Admob.Runtime",
+    "rootNamespace": "Autech.Admob",
+    "references": [
+        "Unity.TextMeshPro",
+        "GoogleMobileAds.Core",
+        "GoogleMobileAds.Ump",
+        "GoogleMobileAds.Common",
+        "GoogleMobileAds.Mediation.UnityAds.Api",
+        "GoogleMobileAds.Mediation.UnityAds.Common",
+        "GoogleMobileAds.Mediation.UnityAds.Android",
+        "GoogleMobileAds.Mediation.UnityAds.iOS",
+        "GoogleMobileAds.Editor"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [
+        {
+            "name": "com.google.ads.mobile",
+            "expression": "10.6.0",
+            "define": "ADMOB_INSTALLED"
+        },
+        {
+            "name": "com.google.ads.mobile.mediation.unity",
+            "expression": "3.16.1",
+            "define": "UNITY_ADS_MEDIATION"
+        }
+    ],
+    "noEngineReferences": false
+}

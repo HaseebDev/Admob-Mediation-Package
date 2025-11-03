@@ -1,4 +1,4 @@
-# Installation Guide – Autech AdMob Mediation (v2.1.0)
+# Installation Guide – Autech AdMob Mediation (v2.1.1)
 
 This package is delivered as a Unity Package Manager (UPM) Git dependency. Follow the steps below to bring the new architecture (thread-safe `AdsManager`, secure persistence, and Google UMP ➜ Unity Ads consent bridge) into your project.
 
@@ -92,9 +92,9 @@ After the dependencies are installed, add this package through the Package Manag
 If you run into other issues, consult:
 - [README.md](README.md) – architecture overview & usage examples  
 - [KNOWN_ISSUES.md](KNOWN_ISSUES.md) – known problems and workarounds  
-- [CHANGELOG.md](CHANGELOG.md) – what changed in v2.1.0  
+- [CHANGELOG.md](CHANGELOG.md) – what changed in v2.1.1  
 - [GitHub Issues](https://github.com/HaseebDev/Admob-Mediation-Package/issues) – community support
 
 ---
 
-You’re ready to use the v2.1.0 stack—enjoy the updated consent pipeline, secure persistence, and safer ad orchestration!
+You’re ready to use the v2.1.1 stack—enjoy the updated consent pipeline, secure persistence, and safer ad orchestration!

@@ -5,6 +5,18 @@ All notable changes to the Autech AdMob Mediation Unity Ads package will be docu
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.1.1] - 2025-11-04
+
+### 🔧 Changed
+- Synced Runtime consent flow and native iOS helper with the latest `Assets/Admob` implementations to keep package binaries in parity.
+- Repository now tracks core `Assets` package sources (scripts, plugins, metadata) for easier diffing between Unity project and UPM runtime.
+- Bumped dependency status cache key so the editor bootstrapper revalidates Google SDK prerequisites after upgrading.
+
+### 📚 Documentation
+- Updated README and INSTALL guides to reflect the 2.1.1 release details and tracked asset layout.
+
+---
+
 ## [2.1.0] - 2025-10-31
 
 ### 🚀 Added
