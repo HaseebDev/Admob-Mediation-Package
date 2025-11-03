@@ -378,6 +378,7 @@ namespace Autech.Admob
                         
                         bool canRequestAds = ConsentInformation.CanRequestAds();
                         wasAbleToRequestAds = canRequestAds;
+                        isConsentInitialized = true;
                         OnConsentReady?.Invoke(canRequestAds);
                     }
                 });
