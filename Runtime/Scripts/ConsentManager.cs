@@ -585,7 +585,7 @@ namespace Autech.Admob
                     string purposeConsents = "";
 #endif
                     
-                    if (!string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length >= 4)
+                    if (!string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2)
                     {
                         bool hasPersonalizationConsent = purposeConsents[2] == '1';
                         Debug.Log($"[ConsentManager] TCF Purpose 3 (Ad Personalization): {hasPersonalizationConsent}");
@@ -593,8 +593,8 @@ namespace Autech.Admob
                     }
                     else
                     {
-                        Debug.LogWarning("[ConsentManager] TCF PurposeConsents string not found or invalid - defaulting to NonPersonalized");
-                        return "NonPersonalized";
+                        Debug.LogWarning("[ConsentManager] TCF PurposeConsents string not found or invalid - returning Unknown");
+                        return "Unknown";
                     }
                 }
                 else if (status == ConsentStatus.NotRequired)
