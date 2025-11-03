@@ -150,7 +150,7 @@ AdsManager.Instance.ShowRewarded(OnRewardedClosed, OnRewardedFailed);
 ## 📋 Prerequisites
 
 - Unity 2020.3 or higher
-- Google Mobile Ads Unity SDK 10.2.0+
+- Google Mobile Ads Unity SDK 10.6.0+
 - Git installed (for Package Manager Git URL import)
 
 ## 🚀 Installation Guide
@@ -169,7 +169,7 @@ AdsManager.Instance.ShowRewarded(OnRewardedClosed, OnRewardedFailed);
 
 Ensure the following packages exist (via Package Manager or `Packages/manifest.json`):
 
-- `com.google.ads.mobile` (Google Mobile Ads, 10.4.2+ recommended)
+- `com.google.ads.mobile` (Google Mobile Ads, 10.6.0+ recommended)
 - `com.google.ads.mobile.mediation.unity` (Unity Ads mediation adapter)
 - `com.google.external-dependency-manager` (EDM4U)
 
@@ -214,7 +214,8 @@ Finish by adding this package via Git URL as shown above.
 
 | Version | Release Date | Key Features |
 |---------|--------------|--------------|
-| **[v2.1.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.1.0)** | Latest | Thread-safe `AdsManager`, AES-secured persistence, Google UMP ➜ Unity Ads consent bridge, unified controller retries, refreshed tooling & docs |
+| **[v2.1.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.1.1)** | Latest | Repo now tracks `Assets` package sources, Runtime synced with latest consent + iOS helpers, documentation refreshed for 2.1.1 rollout |
+| [v2.1.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.1.0) | Previous | Thread-safe `AdsManager`, AES-secured persistence, Google UMP ➜ Unity Ads consent bridge, unified controller retries, refreshed tooling & docs |
 | [v2.0.2](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.2) | Previous | Enhanced UI integration, visual Remove Ads indicator, smart banner visibility control, professional debug logging |
 | [v2.0.1](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.1) | Previous | Remove Ads system, persistence, comprehensive testing |
 | [v2.0.0](https://github.com/HaseebDev/Admob-Mediation-Package/releases/tag/v2.0.0) | Legacy | Adaptive banners, collapsible support, revenue tracking |

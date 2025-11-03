@@ -1,4 +1,4 @@
-# Installation Guide – Autech AdMob Mediation (v2.1.0)
+# Installation Guide – Autech AdMob Mediation (v2.1.1)
 
 This package is delivered as a Unity Package Manager (UPM) Git dependency. Follow the steps below to bring the new architecture (thread-safe `AdsManager`, secure persistence, and Google UMP ➜ Unity Ads consent bridge) into your project.
 
@@ -8,8 +8,8 @@ This package is delivered as a Unity Package Manager (UPM) Git dependency. Follo
 
 - **Unity** 2020.3 LTS or newer  
 - **Git** installed on your machine (required for UPM Git imports)  
-- **Google Mobile Ads Unity SDK** `com.google.ads.mobile` v10.4.2+  
-- **Unity Ads Mediation Adapter** `com.google.ads.mobile.mediation.unity` v3.15.0+  
+- **Google Mobile Ads Unity SDK** `com.google.ads.mobile` v10.6.0+  
+- **Unity Ads Mediation Adapter** `com.google.ads.mobile.mediation.unity` v3.16.1+  
 - **External Dependency Manager** `com.google.external-dependency-manager` (EDM4U)
 
 > 📌 Install or update the Google packages first. The mediation package expects their assemblies to be present when compiling.
@@ -37,9 +37,9 @@ This package is delivered as a Unity Package Manager (UPM) Git dependency. Follo
 ```jsonc
 {
   "dependencies": {
-    "com.google.ads.mobile": "10.4.2",
-    "com.google.ads.mobile.mediation.unity": "3.15.0",
-    "com.google.external-dependency-manager": "1.2.180",
+    "com.google.ads.mobile": "10.6.0",
+    "com.google.ads.mobile.mediation.unity": "3.16.1",
+    "com.google.external-dependency-manager": "1.2.186",
     "com.autech.admob-mediation": "https://github.com/HaseebDev/Admob-Mediation-Package.git"
   }
 }
@@ -92,9 +92,9 @@ After the dependencies are installed, add this package through the Package Manag
 If you run into other issues, consult:
 - [README.md](README.md) – architecture overview & usage examples  
 - [KNOWN_ISSUES.md](KNOWN_ISSUES.md) – known problems and workarounds  
-- [CHANGELOG.md](CHANGELOG.md) – what changed in v2.1.0  
+- [CHANGELOG.md](CHANGELOG.md) – what changed in v2.1.1  
 - [GitHub Issues](https://github.com/HaseebDev/Admob-Mediation-Package/issues) – community support
 
 ---
 
-You’re ready to use the v2.1.0 stack—enjoy the updated consent pipeline, secure persistence, and safer ad orchestration!
+You’re ready to use the v2.1.1 stack—enjoy the updated consent pipeline, secure persistence, and safer ad orchestration!
