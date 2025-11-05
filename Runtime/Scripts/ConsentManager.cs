@@ -32,12 +32,22 @@ namespace Autech.Admob
         private bool wasAbleToRequestAds = false;
         private bool lastPrivacyOptionsRequirementState = false;
         private bool hasLoggedPrivacyRequirementState = false;
+        private bool hasLoggedDebugDeviceHashes = false;
         private const int TcfPollIntervalMs = 100;
         private const int TcfDataTimeoutMs = 5000;
         private const string TcfPurposeConsentsKey = "IABTCF_PurposeConsents";
         private static readonly string[] DefaultDebugDeviceHashedIds =
         {
-            "e1dd805b9856934e652fcfa018506e3128f7182f49707d403c81e3caadbbfab8"
+            // HOW TO GET YOUR DEVICE HASH ID:
+            // 1. Run the app WITHOUT any hash IDs first
+            // 2. Check Unity Console/Logcat for UMP SDK message:
+            //    Android: "Use new ConsentDebugSettings.Builder().addTestDeviceHashedId("YOUR_HASH")"
+            //    iOS: "<UMP SDK>To enable debug mode for this device, set: UMPDebugSettings.testDeviceIdentifiers = @[YOUR_HASH]"
+            // 3. Copy that hash and paste it below
+            // 4. Google does NOT expose the hash algorithm - you MUST get it from logs!
+
+            // Registered test devices:
+            "606EFCF65B190C9E2B3F9D1608BE27B3", // Device GAID: 6a6793fe-cd71-49a6-a4e1-19a5d12e204b
         };
 
         /// <summary>
@@ -153,6 +163,26 @@ namespace Autech.Admob
                 {
                     Debug.Log("[ConsentManager] CONSENT DEBUGGING ENABLED");
                     Debug.LogWarning("[ConsentManager] Should be DISABLED in production");
+                }
+
+                if (!hasLoggedDebugDeviceHashes)
+                {
+                    if (DefaultDebugDeviceHashedIds.Length > 0)
+                    {
+                        Debug.Log($"[ConsentManager] Registered debug test devices: {string.Join(", ", DefaultDebugDeviceHashedIds)}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("=================================================================");
+                        Debug.LogWarning("[ConsentManager] NO TEST DEVICE HASH IDs CONFIGURED!");
+                        Debug.LogWarning("[ConsentManager] ForceEEA will ONLY work if this device is registered.");
+                        Debug.LogWarning("[ConsentManager] Look for UMP SDK message in console logs below:");
+                        Debug.LogWarning("[ConsentManager] Android: 'Use new ConsentDebugSettings.Builder().addTestDeviceHashedId(...)'");
+                        Debug.LogWarning("[ConsentManager] iOS: '<UMP SDK>To enable debug mode for this device, set: UMPDebugSettings.testDeviceIdentifiers = @[...]'");
+                        Debug.LogWarning("[ConsentManager] Copy that hash ID and add it to DefaultDebugDeviceHashedIds array!");
+                        Debug.LogWarning("=================================================================");
+                    }
+                    hasLoggedDebugDeviceHashes = true;
                 }
 
                 request.ConsentDebugSettings = debugSettings;
