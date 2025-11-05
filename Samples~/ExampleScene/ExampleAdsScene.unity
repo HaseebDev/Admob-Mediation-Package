@@ -1719,7 +1719,27 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: enableTestAds
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: androidBannerId
+      value: ca-app-pub-1768687954002835/9677772983
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: androidAppOpenId
+      value: ca-app-pub-1768687954002835/6162744399
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: androidRewardedId
+      value: ca-app-pub-1768687954002835/3013836878
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: showBannerOnStart
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: autoShowAppOpenAds
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
@@ -1727,12 +1747,24 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: androidInterstitialId
+      value: ca-app-pub-1768687954002835/1385060438
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: enableConsentDebugging
-      value: 1
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: alwaysRequestConsentUpdate
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: forceEEAGeographyForTesting
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
+      propertyPath: androidRewardedInterstitialId
+      value: ca-app-pub-1768687954002835/9071978765
       objectReference: {fileID: 0}
     - target: {fileID: 2784422891448605819, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: m_LocalPosition.x
