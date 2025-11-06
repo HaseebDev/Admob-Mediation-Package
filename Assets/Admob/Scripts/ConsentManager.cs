@@ -30,6 +30,24 @@ namespace Autech.Admob
         private bool isConsentInitialized = false;
         private bool developerBypassEnabled = false;
         private bool wasAbleToRequestAds = false;
+        private bool lastPrivacyOptionsRequirementState = false;
+        private bool hasLoggedPrivacyRequirementState = false;
+        private bool hasLoggedDebugDeviceHashes = false;
+        private const int TcfPollIntervalMs = 100;
+        private const int TcfDataTimeoutMs = 5000;
+        private const string TcfPurposeConsentsKey = "IABTCF_PurposeConsents";
+        private static readonly string[] DefaultDebugDeviceHashedIds =
+        {
+            // HOW TO GET YOUR DEVICE HASH ID:
+            // 1. Run the app WITHOUT any hash IDs first
+            // 2. Check Unity Console/Logcat for UMP SDK message:
+            //    Android: "Use new ConsentDebugSettings.Builder().addTestDeviceHashedId("YOUR_HASH")"
+            //    iOS: "<UMP SDK>To enable debug mode for this device, set: UMPDebugSettings.testDeviceIdentifiers = @[YOUR_HASH]"
+            // 3. Copy that hash and paste it below
+            // 4. Google does NOT expose the hash algorithm - you MUST get it from logs!
+
+            // Registered test devices (add your own hashed IDs from the UMP logs).
+        };
 
         /// <summary>
         /// Checks if debug bypass is allowed based on build configuration.
@@ -122,21 +140,59 @@ namespace Autech.Admob
                 TagForUnderAgeOfConsent = this.TagForUnderAgeOfConsent
             };
 
-            if (EnableConsentDebugging)
+            if (ShouldApplyDebugConsentSettings())
             {
-                Debug.Log("[ConsentManager] CONSENT DEBUGGING ENABLED");
-                Debug.LogWarning("[ConsentManager] Should be DISABLED in production");
-
                 var debugSettings = new ConsentDebugSettings
                 {
-                    DebugGeography = ForceEEAGeographyForTesting ? DebugGeography.EEA : DebugGeography.Other,
-                    TestDeviceHashedIds = new List<string>()
+                    TestDeviceHashedIds = new List<string>(DefaultDebugDeviceHashedIds)
                 };
+
+                if (ForceEEAGeographyForTesting)
+                {
+                    debugSettings.DebugGeography = DebugGeography.EEA;
+                    Debug.Log("[ConsentManager] ForceEEAGeographyForTesting enabled - requesting EEA consent flow for this device.");
+                    Debug.LogWarning("[ConsentManager] Ensure this device's hashed ID is registered with Google UMP debug settings, otherwise the override will be ignored.");
+                }
+                else
+                {
+                    debugSettings.DebugGeography = DebugGeography.Other;
+                }
+
+                if (EnableConsentDebugging)
+                {
+                    Debug.Log("[ConsentManager] CONSENT DEBUGGING ENABLED");
+                    Debug.LogWarning("[ConsentManager] Should be DISABLED in production");
+                }
+
+                if (!hasLoggedDebugDeviceHashes)
+                {
+                    if (DefaultDebugDeviceHashedIds.Length > 0)
+                    {
+                        Debug.Log($"[ConsentManager] Registered debug test devices: {string.Join(", ", DefaultDebugDeviceHashedIds)}");
+                    }
+                    else
+                    {
+                        Debug.LogWarning("=================================================================");
+                        Debug.LogWarning("[ConsentManager] NO TEST DEVICE HASH IDs CONFIGURED!");
+                        Debug.LogWarning("[ConsentManager] ForceEEA will ONLY work if this device is registered.");
+                        Debug.LogWarning("[ConsentManager] Look for UMP SDK message in console logs below:");
+                        Debug.LogWarning("[ConsentManager] Android: 'Use new ConsentDebugSettings.Builder().addTestDeviceHashedId(...)'");
+                        Debug.LogWarning("[ConsentManager] iOS: '<UMP SDK>To enable debug mode for this device, set: UMPDebugSettings.testDeviceIdentifiers = @[...]'");
+                        Debug.LogWarning("[ConsentManager] Copy that hash ID and add it to DefaultDebugDeviceHashedIds array!");
+                        Debug.LogWarning("=================================================================");
+                    }
+                    hasLoggedDebugDeviceHashes = true;
+                }
 
                 request.ConsentDebugSettings = debugSettings;
             }
 
             return request;
+        }
+
+        private bool ShouldApplyDebugConsentSettings()
+        {
+            return EnableConsentDebugging || ForceEEAGeographyForTesting;
         }
 
         private async Task CheckConsentStatusAsync()
@@ -154,9 +210,8 @@ namespace Autech.Admob
                 
                 if (status == ConsentStatus.Obtained)
                 {
-                    Debug.Log("[ConsentManager] Waiting for UMP SDK to ensure TCF strings are available...");
-                    await Task.Delay(300);
-                    Debug.Log("[ConsentManager] TCF read delay complete - proceeding with initialization");
+                    Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (initial check)...");
+                    await WaitForTcfDataAsync("initial status check");
                 }
                 
                 OnConsentReady?.Invoke(true);
@@ -222,9 +277,8 @@ namespace Autech.Admob
         private async void HandleConsentObtained()
         {
             Debug.Log("[ConsentManager] Consent Status: OBTAINED");
-            Debug.Log("[ConsentManager] Waiting for UMP SDK to ensure TCF strings are available...");
-            await Task.Delay(300);
-            Debug.Log("[ConsentManager] TCF read delay complete - proceeding with initialization");
+            Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (obtained handler)...");
+            await WaitForTcfDataAsync("consent obtained handler");
             OnConsentReady?.Invoke(true);
             isConsentInitialized = true;
         }
@@ -279,9 +333,8 @@ namespace Autech.Admob
 
             if (ConsentInformation.CanRequestAds())
             {
-                Debug.Log("[ConsentManager] Waiting for UMP SDK to write TCF strings to native storage...");
-                await Task.Delay(500);
-                Debug.Log("[ConsentManager] TCF write delay complete - proceeding with initialization");
+                Debug.Log("[ConsentManager] Waiting for UMP SDK to publish TCF strings (post form)...");
+                await WaitForTcfDataAsync("post form");
 
                 OnConsentReady?.Invoke(true);
                 isConsentInitialized = true;
@@ -348,6 +401,49 @@ namespace Autech.Admob
             }
         }
 
+        private async Task WaitForTcfDataAsync(string contextLabel)
+        {
+#if (UNITY_ANDROID || UNITY_IOS) && !UNITY_EDITOR
+            if (ConsentInformation.ConsentStatus != ConsentStatus.Obtained)
+            {
+                return;
+            }
+
+            int elapsed = 0;
+            while (elapsed < TcfDataTimeoutMs)
+            {
+                if (IsTcfDataAvailable())
+                {
+                    if (elapsed > 0)
+                    {
+                        Debug.Log($"[ConsentManager] TCF data ready after {elapsed}ms ({contextLabel})");
+                    }
+                    return;
+                }
+
+                await Task.Delay(TcfPollIntervalMs);
+                elapsed += TcfPollIntervalMs;
+            }
+
+            Debug.LogWarning($"[ConsentManager] TCF data not available after {TcfDataTimeoutMs}ms ({contextLabel}) - continuing");
+#else
+            await Task.CompletedTask;
+#endif
+        }
+
+        private bool IsTcfDataAvailable()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            string purposeConsents = GetAndroidSharedPreference(TcfPurposeConsentsKey, "");
+            return !string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2;
+#elif UNITY_IOS && !UNITY_EDITOR
+            string purposeConsents = GetIOSUserDefault(TcfPurposeConsentsKey, "");
+            return !string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2;
+#else
+            return true;
+#endif
+        }
+
         private void LogDetailedConsentStatus()
         {
             Debug.Log($"[ConsentManager] CanRequestAds: {ConsentInformation.CanRequestAds()}");
@@ -376,6 +472,7 @@ namespace Autech.Admob
                         
                         bool canRequestAds = ConsentInformation.CanRequestAds();
                         wasAbleToRequestAds = canRequestAds;
+                        isConsentInitialized = true;
                         OnConsentReady?.Invoke(canRequestAds);
                     }
                 });
@@ -389,7 +486,12 @@ namespace Autech.Admob
         public bool ShouldShowPrivacyOptionsButton()
         {
             bool shouldShow = ConsentInformation.PrivacyOptionsRequirementStatus == PrivacyOptionsRequirementStatus.Required;
-            Debug.Log($"[ConsentManager] Should show privacy options button: {shouldShow}");
+            if (!hasLoggedPrivacyRequirementState || shouldShow != lastPrivacyOptionsRequirementState)
+            {
+                Debug.Log($"[ConsentManager] Should show privacy options button: {shouldShow}");
+                lastPrivacyOptionsRequirementState = shouldShow;
+                hasLoggedPrivacyRequirementState = true;
+            }
             return shouldShow;
         }
 
@@ -585,7 +687,7 @@ namespace Autech.Admob
                     string purposeConsents = "";
 #endif
                     
-                    if (!string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length >= 4)
+                    if (!string.IsNullOrEmpty(purposeConsents) && purposeConsents.Length > 2)
                     {
                         bool hasPersonalizationConsent = purposeConsents[2] == '1';
                         Debug.Log($"[ConsentManager] TCF Purpose 3 (Ad Personalization): {hasPersonalizationConsent}");
@@ -593,8 +695,8 @@ namespace Autech.Admob
                     }
                     else
                     {
-                        Debug.LogWarning("[ConsentManager] TCF PurposeConsents string not found or invalid - defaulting to NonPersonalized");
-                        return "NonPersonalized";
+                        Debug.LogWarning("[ConsentManager] TCF PurposeConsents string not found or invalid - returning Unknown");
+                        return "Unknown";
                     }
                 }
                 else if (status == ConsentStatus.NotRequired)

@@ -1,9 +1,24 @@
 {
   "name": "com.autech.admob-mediation",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "displayName": "Autech AdMob Mediation",
   "description": "A powerful and production-ready AdMob integration package with Unity Ads mediation for Unity projects. Features comprehensive ad management, GDPR consent handling, Remove Ads system with persistence, and enterprise-grade error handling. IMPORTANT: Requires Google Mobile Ads SDK and Unity Ads Mediation - see Installation Guide in README.",
   "unity": "2020.3",
+  "documentationUrl": "https://github.com/HaseebDev/Admob-Mediation-Package#readme",
+  "changelogUrl": "https://github.com/HaseebDev/Admob-Mediation-Package/blob/main/CHANGELOG.md",
+  "licensesUrl": "https://github.com/HaseebDev/Admob-Mediation-Package/blob/main/LICENSE",
+  "samples": [
+    {
+      "displayName": "Example Scene with UI",
+      "description": "Complete example scene with AdsExampleUI, consent management UI, and all ad format demonstrations. Includes VerifyAdmob script for easy configuration.",
+      "path": "Samples~/ExampleScene"
+    },
+    {
+      "displayName": "Prefabs",
+      "description": "Ready-to-use VerifyandInitializeAdmob prefab with pre-configured settings. Drag into your scene and set your Ad Unit IDs to get started quickly.",
+      "path": "Samples~/Prefabs"
+    }
+  ],
   "keywords": [
     "admob",
     "ads",

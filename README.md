@@ -240,6 +240,103 @@ Finish by adding this package via Git URL as shown above.
 - Trigger `AdsManager.Instance.ShowPrivacyOptionsForm()` from your settings menu.
 - Refresh mediation metadata whenever the consent state changes.
 
+### 🔍 ForceEEA Testing & Device Hash ID Setup
+
+To test GDPR/EEA consent forms **outside Europe**, you need to configure your device as a test device:
+
+#### Step 1: Get Your Device Hash ID
+1. **Enable ForceEEA** in `VerifyAdmob` Inspector (Consent Configuration section)
+2. **Run your app** (without any hash IDs configured first)
+3. **Check logs** for UMP SDK message:
+   - **Android (Logcat/Unity Console):**
+     ```
+     Use new ConsentDebugSettings.Builder().addTestDeviceHashedId("YOUR_HASH_HERE")
+     ```
+   - **iOS (Xcode Console):**
+     ```
+     <UMP SDK>To enable debug mode for this device, set: UMPDebugSettings.testDeviceIdentifiers = @[YOUR_HASH_HERE]
+     ```
+4. **Copy the hash ID** from the log message
+
+#### Step 2: Add Hash ID to Code
+Open `Runtime/Scripts/ConsentManager.cs` (line ~50):
+```csharp
+private static readonly string[] DefaultDebugDeviceHashedIds =
+{
+    "YOUR_COPIED_HASH_ID_HERE",  // Your device
+    "ANOTHER_DEVICE_HASH",       // Team member's device
+};
+```
+
+#### Step 3: Rebuild & Test
+- Rebuild your app
+- ForceEEA will now work correctly
+- You'll see the EEA consent form even outside Europe
+
+> ⚠️ **IMPORTANT**: Google does NOT expose the hash algorithm. You **MUST** get the hash ID from UMP SDK logs. Do NOT try to calculate it from GAID/IDFA.
+
+> 🔒 **Production**: Remove test device hash IDs and disable `ForceEEAGeographyForTesting` before publishing.
+
+---
+
+### 🎯 VerifyAdmob Script (Optional)
+
+The `VerifyAdmob` component is **OPTIONAL** - it's a convenience wrapper for quick prototyping:
+
+#### Option 1: Use VerifyAdmob (Easiest)
+```csharp
+// Attach VerifyAdmob to a GameObject
+// Configure everything in Inspector
+// Automatically initializes AdsManager
+```
+
+#### Option 2: Direct AdsManager Setup (More Control)
+```csharp
+using Autech.Admob;
+
+public class MyAdsInitializer : MonoBehaviour
+{
+    async void Start()
+    {
+        // Configure settings
+        var settings = new AdsManager.AdsManagerSettings
+        {
+            ForceEEAGeographyForTesting = false,  // Production: false
+            EnableConsentDebugging = false,       // Production: false
+            AlwaysRequestConsentUpdate = true,    // Google recommends: true
+            TagForUnderAgeOfConsent = false,      // COPPA: Set true if targeting kids
+            EnableTestAds = false,                // Production: false
+
+            // Ad Unit IDs
+            AndroidBannerId = "ca-app-pub-YOUR_ID/banner",
+            AndroidInterstitialId = "ca-app-pub-YOUR_ID/interstitial",
+            // ... set other IDs
+        };
+
+        // Apply configuration
+        AdsManager.Instance.ApplyConfiguration(settings);
+
+        // Initialize
+        await AdsManager.Instance.InitializeAsync();
+
+        // Show banner
+        AdsManager.Instance.ShowBanner(true);
+    }
+}
+```
+
+**Benefits of Direct Setup:**
+- Full programmatic control
+- Runtime configuration
+- No prefab dependencies
+- Easier integration with existing systems
+
+**Benefits of VerifyAdmob:**
+- Inspector-based configuration
+- No code required
+- Quick prototyping
+- Built-in validation helpers
+
 ---
 
 ## 🧪 Testing & Development

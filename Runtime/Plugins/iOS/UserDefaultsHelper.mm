@@ -25,4 +25,15 @@ extern "C" {
         strcpy(result, utf8String);
         return result;
     }
+    
+    void _RemoveUserDefault(const char* key) {
+        if (key == NULL) {
+            return;
+        }
+        
+        NSString* nsKey = [NSString stringWithUTF8String:key];
+        NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+        [defaults removeObjectForKey:nsKey];
+        [defaults synchronize];
+    }
 }

@@ -1,3 +1,4 @@
+#if ADMOB_INSTALLED
 using UnityEngine;
 using UnityEngine.UI;
 using GoogleMobileAds.Ump.Api;
@@ -329,3 +330,4 @@ namespace AdmobMediationPackage
         #endregion
     }
 }
+#endif // ADMOB_INSTALLED
