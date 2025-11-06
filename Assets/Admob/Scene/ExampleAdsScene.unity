@@ -1780,7 +1780,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: forceEEAGeographyForTesting
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2695954469106698152, guid: f28ac14ac7fdbbb4e810e3a099000ea9, type: 3}
       propertyPath: androidRewardedInterstitialId
