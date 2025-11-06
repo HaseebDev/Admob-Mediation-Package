@@ -46,9 +46,7 @@ namespace Autech.Admob
             // 3. Copy that hash and paste it below
             // 4. Google does NOT expose the hash algorithm - you MUST get it from logs!
 
-            // Registered test devices:
-            "3BF7F827-04A2-557E-A1F5-4187B568B78B",
-            "606EFCF65B190C9E2B3F9D1608BE27B3" // Device GAID: 6a6793fe-cd71-49a6-a4e1-19a5d12e204b
+            // Registered test devices (add your own hashed IDs from the UMP logs).
         };
 
         /// <summary>
